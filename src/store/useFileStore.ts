@@ -1,7 +1,10 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
+
 export type FileType = 'file' | 'folder';
 export type FileStatus = 'brainstorming' | 'writing' | 'completed';
+
 export interface FileNode {
     id: string;
     type: FileType;
@@ -17,6 +20,7 @@ export interface FileNode {
         deadline?: number;
     };
 }
+
 interface FileStore {
     files: Record<string, FileNode>;
     activeFileId: string | null;
@@ -25,12 +29,15 @@ interface FileStore {
     // Actions
     createFile: (parentId: string | null, name: string, type: FileType) => string;
     deleteFile: (fileId: string) => void;
+    renameFile: (fileId: string, newName: string) => void;
+    moveFile: (fileId: string, newParentId: string | null) => void;
     openFile: (fileId: string) => void;
     toggleFolder: (folderId: string) => void;
     updateFileContent: (fileId: string, content: string) => void;
     updateFileMetadata: (fileId: string, metadata: Partial<FileNode['metadata']>) => void;
 }
-const MOCK_FILES: Record<string, FileNode> = {
+
+const INITIAL_MOCK_FILES: Record<string, FileNode> = {
     'root-1': {
         id: 'root-1',
         type: 'folder',
@@ -52,82 +59,107 @@ const MOCK_FILES: Record<string, FileNode> = {
             wordCount: 120,
         }
     },
-    'root-2': {
-        id: 'root-2',
-        type: 'folder',
-        parentId: null,
-        name: 'Blog Posts',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-    },
-    'file-2': {
-        id: 'file-2',
-        type: 'file',
-        parentId: 'root-2',
-        name: 'Tech Trends 2026',
-        content: '# Top Tech Trends\n\n1. AI Assistants everywhere...',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        metadata: {
-            status: 'brainstorming',
-            wordCount: 50,
-        }
-    }
 };
-export const useFileStore = create<FileStore>((set) => ({
-    files: MOCK_FILES,
-    activeFileId: null,
-    expandedFolders: new Set(['root-1', 'root-2']),
-    createFile: (parentId, name, type) => {
-        const id = uuidv4();
-        const newNode: FileNode = {
-            id,
-            type,
-            parentId,
-            name,
-            content: type === 'file' ? '' : undefined,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-            metadata: type === 'file' ? { status: 'brainstorming', wordCount: 0 } : undefined
-        };
-        set((state) => ({
-            files: { ...state.files, [id]: newNode },
-            expandedFolders: type === 'folder' ? new Set([...state.expandedFolders, id]) : state.expandedFolders
-        }));
-        return id;
-    },
-    deleteFile: (fileId) => {
-        set((state) => {
-            const newFiles = { ...state.files };
-            delete newFiles[fileId];
-            // TODO: Recursive delete for folders
-            return { files: newFiles };
-        });
-    },
-    openFile: (fileId) => set({ activeFileId: fileId }),
-    toggleFolder: (folderId) => set((state) => {
-        const newExpanded = new Set(state.expandedFolders);
-        if (newExpanded.has(folderId)) {
-            newExpanded.delete(folderId);
-        } else {
-            newExpanded.add(folderId);
+
+export const useFileStore = create<FileStore>()(
+    persist(
+        (set) => ({
+            files: INITIAL_MOCK_FILES,
+            activeFileId: null,
+            expandedFolders: new Set(['root-1']),
+
+            createFile: (parentId, name, type) => {
+                const id = uuidv4();
+                const newNode: FileNode = {
+                    id,
+                    type,
+                    parentId,
+                    name,
+                    content: type === 'file' ? '' : undefined,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    metadata: type === 'file' ? { status: 'brainstorming', wordCount: 0 } : undefined
+                };
+
+                set((state) => ({
+                    files: { ...state.files, [id]: newNode },
+                    expandedFolders: type === 'folder' ? new Set([...state.expandedFolders, id]) : state.expandedFolders
+                }));
+                return id;
+            },
+
+            deleteFile: (fileId) => {
+                set((state) => {
+                    const newFiles = { ...state.files };
+                    delete newFiles[fileId];
+
+                    // Basic recursive delete for children
+                    Object.values(state.files).forEach(f => {
+                        if (f.parentId === fileId) {
+                            delete newFiles[f.id];
+                        }
+                    });
+
+                    return { files: newFiles };
+                });
+            },
+
+            renameFile: (fileId, newName) => {
+                set((state) => ({
+                    files: {
+                        ...state.files,
+                        [fileId]: { ...state.files[fileId], name: newName, updatedAt: Date.now() }
+                    }
+                }));
+            },
+
+            moveFile: (fileId, newParentId) => {
+                set((state) => ({
+                    files: {
+                        ...state.files,
+                        [fileId]: { ...state.files[fileId], parentId: newParentId, updatedAt: Date.now() }
+                    }
+                }));
+            },
+
+            openFile: (fileId) => set({ activeFileId: fileId }),
+
+            toggleFolder: (folderId) => set((state) => {
+                const newExpanded = new Set(state.expandedFolders);
+                if (newExpanded.has(folderId)) {
+                    newExpanded.delete(folderId);
+                } else {
+                    newExpanded.add(folderId);
+                }
+                return { expandedFolders: newExpanded };
+            }),
+
+            updateFileContent: (fileId, content) => set((state) => ({
+                files: {
+                    ...state.files,
+                    [fileId]: { ...state.files[fileId], content, updatedAt: Date.now() }
+                }
+            })),
+
+            updateFileMetadata: (fileId, metadata) => set((state) => ({
+                files: {
+                    ...state.files,
+                    [fileId]: {
+                        ...state.files[fileId],
+                        metadata: { ...state.files[fileId].metadata!, ...metadata },
+                        updatedAt: Date.now()
+                    }
+                }
+            }))
+        }),
+        {
+            name: 'zenflux-storage',
+            storage: createJSONStorage(() => localStorage),
+            // Need to handle Set serialization for expandedFolders since local storage doesn't support Set
+            partialize: (state) => ({
+                files: state.files,
+                activeFileId: state.activeFileId,
+            }),
         }
-        return { expandedFolders: newExpanded };
-    }),
-    updateFileContent: (fileId, content) => set((state) => ({
-        files: {
-            ...state.files,
-            [fileId]: { ...state.files[fileId], content, updatedAt: Date.now() }
-        }
-    })),
-    updateFileMetadata: (fileId, metadata) => set((state) => ({
-        files: {
-            ...state.files,
-            [fileId]: {
-                ...state.files[fileId],
-                metadata: { ...state.files[fileId].metadata!, ...metadata },
-                updatedAt: Date.now()
-            }
-        }
-    }))
-}));
+    )
+);
