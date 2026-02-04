@@ -65,6 +65,15 @@ const FileTreeItem = ({ nodeId, level = 0, onContextMenu, onDrop }: FileTreeItem
         }
     };
 
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'brainstorming': return 'bg-yellow-500/50';
+            case 'writing': return 'bg-blue-500/50';
+            case 'completed': return 'bg-green-500/50';
+            default: return null;
+        }
+    };
+
     return (
         <div>
             <div
@@ -74,7 +83,7 @@ const FileTreeItem = ({ nodeId, level = 0, onContextMenu, onDrop }: FileTreeItem
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={cn(
-                    "flex items-center gap-2 py-1 px-2 rounded-md cursor-pointer transition-all text-sm",
+                    "flex items-center gap-2 py-1 px-2 rounded-md cursor-pointer transition-all text-sm group",
                     isActive ? "bg-accent-primary/20 text-accent-primary" : "hover:bg-white/5 text-gray-400 hover:text-gray-200",
                     isDragOver && "bg-accent-primary/30 border border-accent-primary/50"
                 )}
@@ -99,7 +108,14 @@ const FileTreeItem = ({ nodeId, level = 0, onContextMenu, onDrop }: FileTreeItem
                         isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />
                     ) : <FileText size={14} />}
                 </span>
-                <span className="truncate">{node.name}</span>
+                <span className="truncate flex-1">{node.name}</span>
+
+                {node.type === 'file' && node.metadata?.status && (
+                    <div className={cn(
+                        "w-1.5 h-1.5 rounded-full ml-auto opacity-70",
+                        getStatusColor(node.metadata.status)
+                    )} title={node.metadata.status} />
+                )}
             </div>
 
             {node.type === 'folder' && isExpanded && (

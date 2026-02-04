@@ -24,6 +24,7 @@ export function Editor() {
             fileName={file.name}
             content={file.content || ''}
             onChange={(content) => updateFileContent(file.id, content)}
+            fileId={file.id}
         />
     );
 }

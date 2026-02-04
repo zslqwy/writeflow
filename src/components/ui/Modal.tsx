@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useModalStore, type TreeNode } from '../../store/useModalStore';
-import { X, ChevronRight, ChevronDown, Folder } from 'lucide-react';
+import { X, ChevronRight, ChevronDown, Folder, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 // Helper component for recursive tree rendering
 const TreeItem = ({ node, onSelect, selectedId, level = 0 }: { node: TreeNode, onSelect: (id: string) => void, selectedId: string | null, level?: number }) => {
@@ -57,12 +59,18 @@ export function Modal() {
     const { modal } = useModalStore();
     const [inputValue, setInputValue] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (modal.type === 'prompt' && modal.defaultValue !== undefined) {
             setInputValue(modal.defaultValue);
+        }
+        if (modal.type === 'date-picker' && modal.defaultValue) {
+            setSelectedDate(new Date(modal.defaultValue));
+        } else {
+            setSelectedDate(null);
         }
         // Reset selection when modal opens/changes
         setSelectedId(null);
@@ -166,6 +174,29 @@ export function Modal() {
                             </div>
                         </div>
                     )}
+
+                    {modal.type === 'date-picker' && (
+                        <div className="flex flex-col items-center">
+                            <DatePicker
+                                selected={selectedDate}
+                                onChange={(date: Date | null) => setSelectedDate(date)}
+                                minDate={new Date()}
+                                inline
+                                calendarClassName="!bg-[#1a1a1e] !border-white/10 !text-white"
+                                dayClassName={(date: Date) =>
+                                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                                        ? '!text-gray-600 !cursor-not-allowed'
+                                        : '!text-gray-200 hover:!bg-accent-primary/30'
+                                }
+                            />
+                            {selectedDate && (
+                                <p className="text-sm text-accent-primary mt-2">
+                                    <Calendar size={14} className="inline mr-1" />
+                                    Selected: {selectedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
@@ -178,15 +209,16 @@ export function Modal() {
                             Cancel
                         </button>
                         <button
-                            disabled={modal.type === 'tree-select' && !selectedId}
+                            disabled={(modal.type === 'tree-select' && !selectedId) || (modal.type === 'date-picker' && !selectedDate)}
                             onClick={() => {
                                 if (modal.type === 'prompt') modal.onConfirm?.(inputValue);
                                 else if (modal.type === 'tree-select') modal.onConfirm?.(selectedId);
+                                else if (modal.type === 'date-picker' && selectedDate) modal.onConfirm?.(selectedDate.toISOString());
                                 else modal.onConfirm?.();
                             }}
                             className={cn(
                                 "px-4 py-2 text-sm text-white rounded-lg transition-colors",
-                                (modal.type === 'tree-select' && !selectedId)
+                                ((modal.type === 'tree-select' && !selectedId) || (modal.type === 'date-picker' && !inputValue))
                                     ? "bg-white/5 text-gray-500 cursor-not-allowed"
                                     : "bg-accent-primary hover:bg-accent-primary/80"
                             )}

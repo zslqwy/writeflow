@@ -1,19 +1,25 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
+
 export interface ContextMenuAction {
     label: string;
     icon?: React.ElementType;
     onClick: () => void;
     danger?: boolean;
 }
+
 interface ContextMenuProps {
     x: number;
     y: number;
     actions: ContextMenuAction[];
     onClose: () => void;
 }
+
 export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
+    const [position, setPosition] = useState({ top: y, left: x });
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -23,14 +29,39 @@ export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
-    // Adjust position if it goes off screen (basic)
-    // detailed positioning logic usually requires measuring screen size
 
-    return (
+    // Adjust position on mount to prevent overflow
+    useEffect(() => {
+        if (menuRef.current) {
+            const rect = menuRef.current.getBoundingClientRect();
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            let newLeft = x;
+            let newTop = y;
+
+            // Prevent right overflow
+            if (x + rect.width > viewportWidth) {
+                newLeft = viewportWidth - rect.width - 10;
+            }
+            // Prevent bottom overflow
+            if (y + rect.height > viewportHeight) {
+                newTop = viewportHeight - rect.height - 10;
+            }
+            // Prevent left/top overflow
+            if (newLeft < 0) newLeft = 10;
+            if (newTop < 0) newTop = 10;
+
+            setPosition({ top: newTop, left: newLeft });
+        }
+    }, [x, y]);
+
+    // Use Portal to render menu at document.body level (outside any overflow:hidden containers)
+    return createPortal(
         <div
             ref={menuRef}
-            className="fixed z-50 min-w-[160px] bg-[#1a1a1e]/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-100"
-            style={{ top: y, left: x }}
+            className="fixed z-[9999] min-w-[160px] bg-[#1a1a1e]/95 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl py-1 animate-in fade-in zoom-in-95 duration-100"
+            style={{ top: position.top, left: position.left }}
         >
             {actions.map((action, index) => (
                 <button
@@ -49,6 +80,7 @@ export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
                     {action.label}
                 </button>
             ))}
-        </div>
+        </div>,
+        document.body
     );
 }

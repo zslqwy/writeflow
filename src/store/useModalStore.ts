@@ -7,7 +7,7 @@ export interface TreeNode {
     icon?: any; // strict typing for icon component is tricky in pure JS store, using any or string for now, or just ignore icon in store and only use default folder icon in rendering
 }
 
-type ModalType = 'confirm' | 'prompt' | 'select' | 'tree-select' | null;
+type ModalType = 'confirm' | 'prompt' | 'select' | 'tree-select' | 'date-picker' | null;
 
 interface ModalState {
     type: ModalType;
@@ -27,6 +27,7 @@ interface ModalStore {
     showPrompt: (title: string, message: string, defaultValue: string, onSubmit: (value: string) => void, onCancel?: () => void) => void;
     showSelect: (title: string, message: string, options: { id: string; label: string }[], onSelect: (id: string) => void, onCancel?: () => void) => void;
     showTreeSelect: (title: string, message: string, data: TreeNode[], onSelect: (id: string) => void, onCancel?: () => void) => void;
+    showDatePicker: (title: string, message: string, defaultValue: string | null, onSelect: (date: Date) => void, onCancel?: () => void) => void;
     closeModal: () => void;
 }
 
@@ -105,6 +106,28 @@ export const useModalStore = create<ModalStore>((set) => ({
                 onConfirm: (id) => {
                     set({ modal: initialState });
                     if (id) onSelect(id);
+                },
+                onCancel: () => {
+                    set({ modal: initialState });
+                    onCancel?.();
+                },
+            },
+        });
+    },
+
+    showDatePicker: (title, message, defaultValue, onSelect, onCancel) => {
+        set({
+            modal: {
+                type: 'date-picker',
+                title,
+                message,
+                defaultValue: defaultValue || '',
+                onConfirm: (dateStr) => {
+                    set({ modal: initialState });
+                    if (dateStr) {
+                        const date = new Date(dateStr);
+                        if (!isNaN(date.getTime())) onSelect(date);
+                    }
                 },
                 onCancel: () => {
                     set({ modal: initialState });
