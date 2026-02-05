@@ -3,11 +3,15 @@ import { Sidebar } from '../components/Sidebar';
 import { useFocusStore } from '../store/useFocusStore';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
-import { PanelLeftClose, PanelLeft } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
+import { AIAssistant } from '../components/AIAssistant';
+import { SettingsModal } from '../components/ui/SettingsModal';
 
 export function AppLayout() {
     const { isFocusMode } = useFocusStore();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [aiOpen, setAiOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
 
@@ -23,7 +27,7 @@ export function AppLayout() {
                 </div>
             </div>
 
-            {/* Sidebar Toggle Button - Fixed position relative to viewport */}
+            {/* Sidebar Toggle Button */}
             <button
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 className={cn(
@@ -37,11 +41,41 @@ export function AppLayout() {
                 {isSidebarHidden ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
             </button>
 
+            {/* AI Assistant Toggle Button */}
+            <button
+                onClick={() => setAiOpen(!aiOpen)}
+                className={cn(
+                    "fixed z-[200] bottom-4 right-6 p-3 rounded-full shadow-lg transition-all duration-300",
+                    "border border-white/10",
+                    aiOpen
+                        ? "bg-accent-primary text-white"
+                        : "bg-[#1a1a1e]/90 backdrop-blur-xl text-gray-400 hover:text-white hover:bg-white/10"
+                )}
+                title="AI Assistant"
+            >
+                <Sparkles size={20} />
+            </button>
+
             <main className="flex-1 overflow-hidden relative flex flex-col">
                 <div className="flex-1 overflow-auto">
                     <Outlet />
                 </div>
             </main>
+
+            {/* AI Assistant Panel */}
+            <AIAssistant
+                isOpen={aiOpen}
+                onClose={() => setAiOpen(false)}
+                onOpenSettings={() => {
+                    setSettingsOpen(true);
+                }}
+            />
+
+            {/* Settings Modal */}
+            <SettingsModal
+                isOpen={settingsOpen}
+                onClose={() => setSettingsOpen(false)}
+            />
         </div>
     );
 }
