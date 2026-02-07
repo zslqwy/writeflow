@@ -3,7 +3,9 @@ import { X, Check, AlertCircle, Plus, Trash2, Edit2, Save, Wifi, Server } from '
 import ReactMarkdown from 'react-markdown';
 import { useSettingsStore, MODEL_PRESETS, DEFAULT_TEMPLATE_IDS, type PromptTemplate } from '../../store/useSettingsStore';
 import { testModelConnection } from '../../services/aiService';
+import { DataSettings } from '../DataSettings';
 import { cn } from '../../lib/utils';
+
 
 interface SettingsModalProps {
     isOpen: boolean;
@@ -17,7 +19,7 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         addTemplate, updateTemplate, deleteTemplate, resetTemplates, clearChatHistory
     } = useSettingsStore();
 
-    const [activeTab, setActiveTab] = useState<'models' | 'templates' | 'history'>('models');
+    const [activeTab, setActiveTab] = useState<'models' | 'templates' | 'history' | 'data'>('models');
 
     // Model state
     const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
@@ -106,6 +108,15 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                             )}
                         >
                             <div className="text-lg">🕒</div> History
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('data')}
+                            className={cn(
+                                "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
+                                activeTab === 'data' ? "bg-accent-primary/10 text-accent-primary border-r-2 border-accent-primary" : "text-gray-400 hover:text-white hover:bg-white/5"
+                            )}
+                        >
+                            <div className="text-lg">💾</div> Data
                         </button>
                     </div>
 
@@ -414,6 +425,12 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {activeTab === 'data' && (
+                            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+                                <DataSettings />
                             </div>
                         )}
                     </div>

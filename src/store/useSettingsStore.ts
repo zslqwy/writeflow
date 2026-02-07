@@ -90,6 +90,7 @@ interface SettingsState {
 
     // Helpers
     getActiveModel: () => ModelConfig | null;
+    importSettings: (data: Partial<SettingsState>) => void;
 }
 
 const defaultTemplates: PromptTemplate[] = [
@@ -250,7 +251,15 @@ export const useSettingsStore = create<SettingsState>()(
             getActiveModel: () => {
                 const state = get();
                 return state.modelConfigs.find(m => m.id === state.activeModelId) || null;
-            }
+            },
+
+            importSettings: (data) => set((state) => ({
+                ...state,
+                ...data,
+                modelConfigs: data.modelConfigs || state.modelConfigs,
+                promptTemplates: data.promptTemplates || state.promptTemplates,
+                chatHistory: data.chatHistory || state.chatHistory,
+            }))
         }),
         {
             name: 'writeflow-settings-v2',

@@ -9,15 +9,15 @@ import {
     Plus,
     Search,
     Settings,
-    LayoutDashboard,
-    Lightbulb,
     Edit2,
     Trash2,
     FilePlus,
     FolderPlus,
-    Move
+    Move,
+    Download
 } from 'lucide-react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { downloadFile } from '../lib/file-utils';
+import { useNavigate } from 'react-router-dom';
 import { ContextMenu, type ContextMenuAction } from './ui/ContextMenu';
 
 interface FileTreeItemProps {
@@ -135,7 +135,7 @@ const FileTreeItem = ({ nodeId, level = 0, onContextMenu, onDrop }: FileTreeItem
     );
 };
 
-export function Sidebar() {
+export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const { files, createFile, openFile, deleteFile, renameFile, moveFile } = useFileStore();
     const { showConfirm, showPrompt, showSelect } = useModalStore();
     const navigate = useNavigate();
@@ -151,6 +151,7 @@ export function Sidebar() {
     const handleCloseMenu = () => setMenu(null);
 
     const handleDrop = (draggedId: string, targetId: string) => {
+        // ... existing drag drop logic ...
         // Prevent dropping into itself or its children
         const draggedNode = files[draggedId];
         if (!draggedNode) return;
@@ -230,15 +231,19 @@ export function Sidebar() {
                 icon: Move,
                 onClick: () => {
                     const treeData = getFolderTreeData(node.id);
-                    // Use showTreeSelect (we need to cast or ensure store type is updated)
-                    // Note: In real app we might not need cast if useModalStore is perfectly typed and updated. 
-                    // But here typescript might not pick up the store update immediately in IDE view, though it works.
-                    // Actually we added showTreeSelect to store interface so it should be fine.
                     const { showTreeSelect } = useModalStore.getState();
 
                     showTreeSelect('Move to', `Select destination for "${node.name}":`, treeData, (targetId) => {
                         moveFile(node.id, targetId === 'root' ? null : targetId);
                     });
+                }
+            },
+            {
+                label: 'Export',
+                icon: Download,
+                onClick: () => {
+                    const content = node.content || '';
+                    downloadFile(content, `${node.name}.md`, 'markdown');
                 }
             },
             {
@@ -257,7 +262,6 @@ export function Sidebar() {
         return actions;
     };
 
-
     return (
         <aside className="w-64 h-screen flex flex-col glass border-r border-white/5 bg-black/40 relative" onContextMenu={(e) => e.preventDefault()}>
             {/* Header */}
@@ -267,23 +271,7 @@ export function Sidebar() {
                 </h1>
             </div>
 
-            {/* Main Nav */}
-            <nav className="p-2 space-y-1">
-                <NavLink to="/" className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all",
-                    isActive ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
-                )}>
-                    <LayoutDashboard size={18} />
-                    Dashboard
-                </NavLink>
-                <NavLink to="/inspirations" className={({ isActive }) => cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all",
-                    isActive ? "bg-white/10 text-white" : "text-gray-400 hover:text-white hover:bg-white/5"
-                )}>
-                    <Lightbulb size={18} />
-                    Inspirations
-                </NavLink>
-            </nav>
+            {/* ... Middle content ... */}
 
             {/* Search */}
             <div className="px-3 py-2">
@@ -344,7 +332,10 @@ export function Sidebar() {
 
             {/* User / Settings */}
             <div className="p-3 border-t border-white/5">
-                <button className="flex items-center gap-3 text-gray-400 hover:text-white w-full px-2 py-2 rounded-md hover:bg-white/5 transition-colors">
+                <button
+                    onClick={onOpenSettings}
+                    className="flex items-center gap-3 text-gray-400 hover:text-white w-full px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
+                >
                     <Settings size={18} />
                     <span className="text-sm">Settings</span>
                 </button>

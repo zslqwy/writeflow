@@ -23,7 +23,7 @@ export function AppLayout() {
                 isSidebarHidden ? "w-0" : "w-64"
             )}>
                 <div className="w-64 h-full">
-                    <Sidebar />
+                    <Sidebar onOpenSettings={() => setSettingsOpen(true)} />
                 </div>
             </div>
 

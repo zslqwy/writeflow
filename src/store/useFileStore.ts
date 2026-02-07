@@ -35,6 +35,7 @@ interface FileStore {
     toggleFolder: (folderId: string) => void;
     updateFileContent: (fileId: string, content: string) => void;
     updateFileMetadata: (fileId: string, metadata: Partial<FileNode['metadata']>) => void;
+    importData: (data: Partial<FileStore>) => void;
 }
 
 const INITIAL_MOCK_FILES: Record<string, FileNode> = {
@@ -150,6 +151,12 @@ export const useFileStore = create<FileStore>()(
                         updatedAt: Date.now()
                     }
                 }
+            })),
+
+            importData: (data) => set((state) => ({
+                files: data.files || state.files,
+                activeFileId: data.activeFileId || null,
+                expandedFolders: data.expandedFolders ? new Set(data.expandedFolders) : new Set()
             }))
         }),
         {
