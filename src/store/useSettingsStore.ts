@@ -147,11 +147,21 @@ const defaultTemplates: PromptTemplate[] = [
 const defaultModelConfigs: ModelConfig[] = [
     {
         id: 'default-deepseek',
-        name: 'DeepSeek Chat',
+        name: 'DeepSeek',
         provider: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com/v1',
         apiKey: '',
         model: 'deepseek-chat',
+        isConnected: false,
+        enabled: true
+    },
+    {
+        id: 'default-chatgpt',
+        name: 'ChatGPT',
+        provider: 'OpenAI',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: '',
+        model: 'gpt-5.1',
         isConnected: false,
         enabled: true
     }

@@ -263,7 +263,7 @@ export function Sidebar() {
             {/* Header */}
             <div className="p-4 flex items-center justify-between border-b border-white/5">
                 <h1 className="text-xl font-serif font-bold bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">
-                    ZenFlux
+                    WriteFlow
                 </h1>
             </div>
 
