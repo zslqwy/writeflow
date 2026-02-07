@@ -6,12 +6,14 @@ import { useState } from 'react';
 import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
 import { AIAssistant } from '../components/AIAssistant';
 import { SettingsModal } from '../components/ui/SettingsModal';
+import { AISettingsModal } from '../components/ui/AISettingsModal';
 
 export function AppLayout() {
     const { isFocusMode } = useFocusStore();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
 
@@ -67,14 +69,20 @@ export function AppLayout() {
                 isOpen={aiOpen}
                 onClose={() => setAiOpen(false)}
                 onOpenSettings={() => {
-                    setSettingsOpen(true);
+                    setAiSettingsOpen(true);
                 }}
             />
 
-            {/* Settings Modal */}
+            {/* System Settings Modal */}
             <SettingsModal
                 isOpen={settingsOpen}
                 onClose={() => setSettingsOpen(false)}
+            />
+
+            {/* AI Settings Modal */}
+            <AISettingsModal
+                isOpen={aiSettingsOpen}
+                onClose={() => setAiSettingsOpen(false)}
             />
         </div>
     );

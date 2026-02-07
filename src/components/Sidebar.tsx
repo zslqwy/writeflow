@@ -17,6 +17,7 @@ import {
     Download
 } from 'lucide-react';
 import { downloadFile } from '../lib/file-utils';
+import { exportToZip } from '../lib/export-utils';
 import { useNavigate } from 'react-router-dom';
 import { ContextMenu, type ContextMenuAction } from './ui/ContextMenu';
 
@@ -212,6 +213,13 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                             createFile(node.id, name, 'folder');
                         });
                     }
+                },
+                {
+                    label: 'Export (ZIP)',
+                    icon: Download,
+                    onClick: () => {
+                        exportToZip(node, files);
+                    }
                 }
             );
         }
@@ -237,27 +245,44 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                         moveFile(node.id, targetId === 'root' ? null : targetId);
                     });
                 }
-            },
-            {
-                label: 'Export',
-                icon: Download,
-                onClick: () => {
-                    const content = node.content || '';
-                    downloadFile(content, `${node.name}.md`, 'markdown');
-                }
-            },
-            {
-                label: 'Delete',
-                icon: Trash2,
-                danger: true,
-                onClick: () => {
-                    showConfirm('Delete', `Are you sure you want to delete "${node.name}"?`, () => {
-                        deleteFile(node.id);
-                        navigate('/');
-                    });
-                }
             }
         );
+
+        if (node.type === 'file') {
+            actions.push({
+                label: 'Export...',
+                icon: Download,
+                onClick: () => {
+                    const { showSelect } = useModalStore.getState();
+                    showSelect(
+                        'Export File',
+                        'Select export format:',
+                        [
+                            { id: 'markdown', label: 'Markdown (.md)' },
+                            { id: 'text', label: 'Plain Text (.txt)' }
+                        ],
+                        (formatId) => {
+                            const content = node.content || '';
+                            const extension = formatId === 'markdown' ? 'md' : 'txt';
+                            const type = formatId === 'markdown' ? 'markdown' : 'text';
+                            downloadFile(content, `${node.name}.${extension}`, type as 'markdown' | 'text');
+                        }
+                    );
+                }
+            });
+        }
+
+        actions.push({
+            label: 'Delete',
+            icon: Trash2,
+            danger: true,
+            onClick: () => {
+                showConfirm('Delete', `Are you sure you want to delete "${node.name}"?`, () => {
+                    deleteFile(node.id);
+                    navigate('/');
+                });
+            }
+        });
 
         return actions;
     };

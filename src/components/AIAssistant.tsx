@@ -199,7 +199,10 @@ export function AIAssistant({ isOpen, onClose, onOpenSettings, selectedText, onI
             ],
             {
                 onToken: (token) => setResult(prev => prev + token),
-                onComplete: () => setIsLoading(false),
+                onComplete: (fullText) => {
+                    setIsLoading(false);
+                    addChatMessage({ action: templateId, input: textToProcess, output: fullText });
+                },
                 onError: (err) => {
                     setError(err.message);
                     setIsLoading(false);
@@ -232,7 +235,10 @@ export function AIAssistant({ isOpen, onClose, onOpenSettings, selectedText, onI
             ],
             {
                 onToken: (token) => setResult(prev => prev + token),
-                onComplete: () => setIsLoading(false),
+                onComplete: (fullText) => {
+                    setIsLoading(false);
+                    addChatMessage({ action: 'custom', input: input, output: fullText });
+                },
                 onError: (err) => {
                     setError(err.message);
                     setIsLoading(false);
