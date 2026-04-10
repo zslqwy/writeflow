@@ -38,6 +38,32 @@ interface FileStore {
     importData: (data: Partial<FileStore>) => void;
 }
 
+type PersistedFileStore = {
+    files: Record<string, FileNode>;
+    activeFileId: string | null;
+    expandedFolders: string[];
+};
+
+const getDescendantIds = (files: Record<string, FileNode>, fileId: string): string[] => {
+    const descendantIds: string[] = [];
+    const stack = [fileId];
+
+    while (stack.length > 0) {
+        const currentId = stack.pop();
+        if (!currentId) continue;
+
+        descendantIds.push(currentId);
+
+        Object.values(files).forEach((file) => {
+            if (file.parentId === currentId) {
+                stack.push(file.id);
+            }
+        });
+    }
+
+    return descendantIds;
+};
+
 const INITIAL_MOCK_FILES: Record<string, FileNode> = {
     'root-1': {
         id: 'root-1',
@@ -92,16 +118,21 @@ export const useFileStore = create<FileStore>()(
             deleteFile: (fileId) => {
                 set((state) => {
                     const newFiles = { ...state.files };
-                    delete newFiles[fileId];
+                    const idsToDelete = new Set(getDescendantIds(state.files, fileId));
 
-                    // Basic recursive delete for children
-                    Object.values(state.files).forEach(f => {
-                        if (f.parentId === fileId) {
-                            delete newFiles[f.id];
-                        }
+                    idsToDelete.forEach((id) => {
+                        delete newFiles[id];
                     });
 
-                    return { files: newFiles };
+                    return {
+                        files: newFiles,
+                        activeFileId: state.activeFileId && idsToDelete.has(state.activeFileId)
+                            ? null
+                            : state.activeFileId,
+                        expandedFolders: new Set(
+                            [...state.expandedFolders].filter((id) => !idsToDelete.has(id))
+                        )
+                    };
                 });
             },
 
@@ -155,18 +186,31 @@ export const useFileStore = create<FileStore>()(
 
             importData: (data) => set((state) => ({
                 files: data.files || state.files,
-                activeFileId: data.activeFileId || null,
-                expandedFolders: data.expandedFolders ? new Set(data.expandedFolders) : new Set()
+                activeFileId: data.activeFileId ?? state.activeFileId,
+                expandedFolders: data.expandedFolders
+                    ? new Set(data.expandedFolders)
+                    : state.expandedFolders
             }))
         }),
         {
             name: 'zenflux-storage',
             storage: createJSONStorage(() => localStorage),
-            // Need to handle Set serialization for expandedFolders since local storage doesn't support Set
-            partialize: (state) => ({
+            partialize: (state): PersistedFileStore => ({
                 files: state.files,
                 activeFileId: state.activeFileId,
+                expandedFolders: Array.from(state.expandedFolders),
             }),
+            merge: (persistedState, currentState) => {
+                const typedPersistedState = persistedState as Partial<PersistedFileStore>;
+
+                return {
+                    ...currentState,
+                    ...typedPersistedState,
+                    expandedFolders: new Set(
+                        typedPersistedState.expandedFolders ?? Array.from(currentState.expandedFolders)
+                    )
+                };
+            },
         }
     )
 );

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useFileStore } from '../store/useFileStore';
 import { useNavigate } from 'react-router-dom';
 import { FileText, ArrowRight, Calendar, Target } from 'lucide-react';
@@ -6,9 +7,18 @@ import { cn } from '../lib/utils'; // Assuming cn utility is available or just u
 export function Dashboard() {
     const { files, openFile } = useFileStore();
     const navigate = useNavigate();
+    const [currentTime, setCurrentTime] = useState(() => Date.now());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 60_000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Get stats
-    const fileList = Object.values(files).filter(f => f.type === 'file');
+    const fileList = useMemo(() => Object.values(files).filter(f => f.type === 'file'), [files]);
     const totalWords = fileList.reduce((acc, f) => acc + (f.metadata?.wordCount || 0), 0);
     const fileCount = fileList.length;
 
@@ -27,8 +37,7 @@ export function Dashboard() {
     // Calculate days remaining
     const getDaysRemaining = (deadline?: number) => {
         if (!deadline) return null;
-        const now = Date.now();
-        const diff = deadline - now;
+        const diff = deadline - currentTime;
         const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
         return days;
     };

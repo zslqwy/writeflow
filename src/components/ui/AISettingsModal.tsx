@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Check, AlertCircle, Plus, Trash2, Edit2, Save, Wifi, Server } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useSettingsStore, MODEL_PRESETS, DEFAULT_TEMPLATE_IDS, type PromptTemplate } from '../../store/useSettingsStore';
@@ -28,13 +28,6 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
     // Template state
     const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
     const [newTemplate, setNewTemplate] = useState({ name: '', prompt: '', icon: '📋' });
-
-    // Initialize selection
-    useEffect(() => {
-        if (isOpen && modelConfigs.length > 0 && !selectedModelId) {
-            setSelectedModelId(activeModelId || modelConfigs[0].id);
-        }
-    }, [isOpen, modelConfigs, activeModelId]);
 
     if (!isOpen) return null;
 
@@ -69,7 +62,8 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
         });
     };
 
-    const activeModelConfig = modelConfigs.find(m => m.id === selectedModelId);
+    const resolvedSelectedModelId = selectedModelId ?? activeModelId ?? modelConfigs[0]?.id ?? null;
+    const activeModelConfig = modelConfigs.find(m => m.id === resolvedSelectedModelId);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
@@ -137,7 +131,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
                                                 key={config.id}
                                                 className={cn(
                                                     "group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border",
-                                                    selectedModelId === config.id
+                                                    resolvedSelectedModelId === config.id
                                                         ? "bg-accent-primary/10 border-accent-primary/50"
                                                         : "bg-transparent border-transparent hover:bg-white/5"
                                                 )}
@@ -165,7 +159,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
                                                     <div className="flex items-center justify-between">
                                                         <div className={cn(
                                                             "text-sm font-medium truncate",
-                                                            selectedModelId === config.id ? "text-white" : "text-gray-300"
+                                                            resolvedSelectedModelId === config.id ? "text-white" : "text-gray-300"
                                                         )}>
                                                             {config.name}
                                                         </div>
@@ -303,7 +297,7 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
                                 <div className="space-y-2">
                                     {promptTemplates.map((t) => (
                                         <TemplateItem
-                                            key={t.id}
+                                            key={`${t.id}-${editingTemplate === t.id ? 'editing' : 'view'}`}
                                             template={t}
                                             isEditing={editingTemplate === t.id}
                                             onEdit={() => setEditingTemplate(t.id)}
@@ -398,8 +392,8 @@ export function AISettingsModal({ isOpen, onClose }: AISettingsModalProps) {
                                                     <div className="text-sm text-gray-200 prose prose-invert prose-sm max-w-none dark:prose-invert">
                                                         <ReactMarkdown
                                                             components={{
-                                                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                                                                code: ({ node, className, children, ...props }) => {
+                                                                p: (props) => <p className="mb-2 last:mb-0" {...props} />,
+                                                                code: ({ className, children, ...props }) => {
                                                                     const match = /language-(\w+)/.exec(className || '')
                                                                     return match ? (
                                                                         <code className={className} {...props}>
@@ -449,12 +443,6 @@ function TemplateItem({
     const [localName, setLocalName] = useState(template.name);
     const [localPrompt, setLocalPrompt] = useState(template.prompt);
     const [localIcon, setLocalIcon] = useState(template.icon || '📋');
-
-    useEffect(() => {
-        setLocalName(template.name);
-        setLocalPrompt(template.prompt);
-        setLocalIcon(template.icon || '📋');
-    }, [template, isEditing]);
 
     const isDefault = DEFAULT_TEMPLATE_IDS.includes(template.id);
 

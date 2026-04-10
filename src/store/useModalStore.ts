@@ -4,7 +4,7 @@ export interface TreeNode {
     id: string;
     label: string;
     children?: TreeNode[];
-    icon?: any; // strict typing for icon component is tricky in pure JS store, using any or string for now, or just ignore icon in store and only use default folder icon in rendering
+    icon?: string;
 }
 
 type ModalType = 'confirm' | 'prompt' | 'select' | 'tree-select' | 'date-picker' | null;
@@ -16,7 +16,7 @@ interface ModalState {
     defaultValue?: string;
     options?: { id: string; label: string }[];
     treeData?: TreeNode[];
-    onConfirm?: (value?: any) => void;
+    onConfirm?: (value?: string) => void;
     onCancel?: () => void;
 }
 

@@ -5,6 +5,24 @@ import { useModalStore } from '../store/useModalStore';
 import { downloadFile, readJsonFile } from '../lib/file-utils';
 import { Download, Upload, Trash2, FileJson, AlertTriangle } from 'lucide-react';
 
+interface BackupData {
+    version: number;
+    timestamp: number;
+    files: ReturnType<typeof useFileStore.getState>['files'];
+    settings: {
+        modelConfigs: ReturnType<typeof useSettingsStore.getState>['modelConfigs'];
+        promptTemplates: ReturnType<typeof useSettingsStore.getState>['promptTemplates'];
+        chatHistory: ReturnType<typeof useSettingsStore.getState>['chatHistory'];
+    };
+}
+
+const isBackupData = (value: unknown): value is BackupData => {
+    return typeof value === 'object'
+        && value !== null
+        && 'files' in value
+        && 'settings' in value;
+};
+
 export function DataSettings() {
     const fileStore = useFileStore();
     const settingsStore = useSettingsStore();
@@ -35,7 +53,7 @@ export function DataSettings() {
             const data = await readJsonFile(file);
 
             // Basic validation
-            if (!data.files || !data.settings) {
+            if (!isBackupData(data)) {
                 throw new Error('Invalid backup file format');
             }
 

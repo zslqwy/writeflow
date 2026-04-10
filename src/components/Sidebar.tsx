@@ -20,6 +20,8 @@ import { downloadFile } from '../lib/file-utils';
 import { exportToZip } from '../lib/export-utils';
 import { useNavigate } from 'react-router-dom';
 import { ContextMenu, type ContextMenuAction } from './ui/ContextMenu';
+import type { FileNode } from '../store/useFileStore';
+import type { TreeNode } from '../store/useModalStore';
 
 interface FileTreeItemProps {
     nodeId: string;
@@ -158,10 +160,10 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
         if (!draggedNode) return;
 
         // Check if target is a descendant of dragged (would cause loop)
-        let current = files[targetId];
+        let current: FileNode | undefined = files[targetId];
         while (current) {
             if (current.id === draggedId) return; // Can't drop into own descendant
-            current = current.parentId ? files[current.parentId] : null as any;
+            current = current.parentId ? files[current.parentId] : undefined;
         }
 
         moveFile(draggedId, targetId);
@@ -169,7 +171,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
 
     // Build recursive tree data for "Move to" modal
     const getFolderTreeData = (excludeId: string) => {
-        const buildTree = (parentId: string | null): any[] => {
+        const buildTree = (parentId: string | null): TreeNode[] => {
             return Object.values(files)
                 .filter(f => f.type === 'folder' && f.parentId === parentId && f.id !== excludeId)
                 .map(f => ({

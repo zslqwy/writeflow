@@ -67,23 +67,6 @@ export function AIAssistant({ isOpen, onClose, onOpenSettings, selectedText, onI
         }
     }, [result]);
 
-    // Reset when closed
-    useEffect(() => {
-        if (!isOpen) {
-            setResult('');
-            setError('');
-            setActiveAction(null);
-            setShowTemplates(false);
-        }
-    }, [isOpen]);
-
-    // Use selected text
-    useEffect(() => {
-        if (selectedText && isOpen) {
-            setInput(selectedText);
-        }
-    }, [selectedText, isOpen]);
-
     // Drag handlers
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -260,6 +243,14 @@ export function AIAssistant({ isOpen, onClose, onOpenSettings, selectedText, onI
         }
     };
 
+    const handleClosePanel = () => {
+        setResult('');
+        setError('');
+        setActiveAction(null);
+        setShowTemplates(false);
+        onClose();
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -307,7 +298,7 @@ export function AIAssistant({ isOpen, onClose, onOpenSettings, selectedText, onI
                         <Settings size={16} />
                     </button>
                     <button
-                        onClick={onClose}
+                        onClick={handleClosePanel}
                         className="p-1.5 text-gray-400 hover:text-white rounded-md hover:bg-white/10 transition-colors"
                     >
                         <X size={16} />
@@ -399,8 +390,8 @@ export function AIAssistant({ isOpen, onClose, onOpenSettings, selectedText, onI
                     >
                         <ReactMarkdown
                             components={{
-                                p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
-                                code: ({ node, className, children, ...props }) => {
+                                p: (props) => <p className="mb-2 last:mb-0" {...props} />,
+                                code: ({ className, children, ...props }) => {
                                     const match = /language-(\w+)/.exec(className || '')
                                     return match ? (
                                         <code className={className} {...props}>

@@ -27,13 +27,14 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [timeLeft, setTimeLeft] = useState<string>('');
+    const [currentTime, setCurrentTime] = useState(() => Date.now());
 
     const fileNode = files[fileId];
     const metadata = fileNode?.metadata;
 
     // Timer Logic
     useEffect(() => {
-        let interval: any;
+        let interval: ReturnType<typeof setInterval> | null = null;
         if (timerActive && startTime) {
             interval = setInterval(() => {
                 const now = Date.now();
@@ -54,8 +55,20 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
         } else {
             setTimeLeft('');
         }
-        return () => clearInterval(interval);
+        return () => {
+            if (interval) {
+                clearInterval(interval);
+            }
+        };
     }, [timerActive, startTime, duration, stopFocus]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(Date.now());
+        }, 60_000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Update local state when prop changes (file switch)
     useEffect(() => {
@@ -192,8 +205,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
 
                     {/* Deadline Remaining Days */}
                     {metadata?.deadline && (() => {
-                        const now = Date.now();
-                        const daysLeft = Math.ceil((metadata.deadline - now) / (1000 * 60 * 60 * 24));
+                        const daysLeft = Math.ceil((metadata.deadline - currentTime) / (1000 * 60 * 60 * 24));
                         return (
                             <div className={cn(
                                 "flex items-center gap-1.5 text-xs px-2 py-1 rounded-md",

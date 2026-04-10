@@ -13,7 +13,7 @@ export interface AIStreamCallbacks {
 
 // Build prompt from template
 export function buildPrompt(templatePrompt: string, text: string): string {
-    return templatePrompt.replace('{text}', text);
+    return templatePrompt.replace(/\{\{text\}\}|\{text\}/g, text);
 }
 
 // Get active model config

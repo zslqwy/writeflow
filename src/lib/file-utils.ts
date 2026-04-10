@@ -17,7 +17,7 @@ export const downloadFile = (content: string, filename: string, type: 'json' | '
     URL.revokeObjectURL(url);
 };
 
-export const readJsonFile = (file: File): Promise<any> => {
+export const readJsonFile = (file: File): Promise<unknown> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {

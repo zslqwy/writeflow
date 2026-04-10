@@ -1,14 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useModalStore, type TreeNode } from '../../store/useModalStore';
 import { X, ChevronRight, ChevronDown, Folder, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-// Helper component for recursive tree rendering
-const TreeItem = ({ node, onSelect, selectedId, level = 0 }: { node: TreeNode, onSelect: (id: string) => void, selectedId: string | null, level?: number }) => {
-    const [isExpanded, setIsExpanded] = useState(true); // Default expanded for easier navigation
-    const hasChildren = node.children && node.children.length > 0;
+const TreeItem = ({
+    node,
+    onSelect,
+    selectedId,
+    level = 0
+}: {
+    node: TreeNode;
+    onSelect: (id: string) => void;
+    selectedId: string | null;
+    level?: number;
+}) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+    const hasChildren = Boolean(node.children?.length);
 
     return (
         <div className="select-none">
@@ -40,7 +49,7 @@ const TreeItem = ({ node, onSelect, selectedId, level = 0 }: { node: TreeNode, o
 
             {hasChildren && isExpanded && (
                 <div>
-                    {node.children!.map(child => (
+                    {node.children!.map((child) => (
                         <TreeItem
                             key={child.id}
                             node={child}
@@ -57,24 +66,7 @@ const TreeItem = ({ node, onSelect, selectedId, level = 0 }: { node: TreeNode, o
 
 export function Modal() {
     const { modal } = useModalStore();
-    const [inputValue, setInputValue] = useState('');
-    const [selectedId, setSelectedId] = useState<string | null>(null);
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
-    const modalRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (modal.type === 'prompt' && modal.defaultValue !== undefined) {
-            setInputValue(modal.defaultValue);
-        }
-        if (modal.type === 'date-picker' && modal.defaultValue) {
-            setSelectedDate(new Date(modal.defaultValue));
-        } else {
-            setSelectedDate(null);
-        }
-        // Reset selection when modal opens/changes
-        setSelectedId(null);
-    }, [modal.type, modal.defaultValue, modal.treeData]);
 
     useEffect(() => {
         if (modal.type === 'prompt' && inputRef.current) {
@@ -83,12 +75,36 @@ export function Modal() {
         }
     }, [modal.type]);
 
-    // Handle Escape key
+    if (!modal.type) return null;
+
+    return (
+        <ModalContent
+            key={`${modal.type}-${modal.title}-${modal.message}-${modal.defaultValue ?? ''}`}
+            modal={modal}
+            inputRef={inputRef}
+        />
+    );
+}
+
+function ModalContent({
+    modal,
+    inputRef,
+}: {
+    modal: ReturnType<typeof useModalStore.getState>['modal'];
+    inputRef: React.RefObject<HTMLInputElement | null>;
+}) {
+    const [inputValue, setInputValue] = useState(modal.type === 'prompt' ? (modal.defaultValue ?? '') : '');
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(
+        modal.type === 'date-picker' && modal.defaultValue ? new Date(modal.defaultValue) : null
+    );
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 modal.onCancel?.();
             }
+
             if (e.key === 'Enter') {
                 if (modal.type === 'prompt') {
                     modal.onConfirm?.(inputValue);
@@ -99,28 +115,22 @@ export function Modal() {
                 }
             }
         };
-        if (modal.type) {
-            document.addEventListener('keydown', handleKeyDown);
-            return () => document.removeEventListener('keydown', handleKeyDown);
-        }
-    }, [modal, inputValue, selectedId]);
 
-    if (!modal.type) return null;
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [inputValue, modal, selectedId]);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
-            {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={() => modal.onCancel?.()}
             />
 
-            {/* Modal */}
-            <div
-                ref={modalRef}
-                className="relative z-10 w-full max-w-md mx-4 bg-[#1a1a1e]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-            >
-                {/* Header */}
+            <div className="relative z-10 w-full max-w-md mx-4 bg-[#1a1a1e]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between p-4 border-b border-white/5">
                     <h3 className="text-lg font-semibold text-white">{modal.title}</h3>
                     <button
@@ -131,7 +141,6 @@ export function Modal() {
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className="p-4">
                     <p className="text-gray-300 text-sm mb-4">{modal.message}</p>
 
@@ -163,7 +172,7 @@ export function Modal() {
                     {modal.type === 'tree-select' && modal.treeData && (
                         <div className="border border-white/5 rounded-lg bg-black/20 overflow-hidden">
                             <div className="max-h-60 overflow-y-auto custom-scrollbar p-1">
-                                {modal.treeData.map(node => (
+                                {modal.treeData.map((node) => (
                                     <TreeItem
                                         key={node.id}
                                         node={node}
@@ -180,11 +189,11 @@ export function Modal() {
                             <DatePicker
                                 selected={selectedDate}
                                 onChange={(date: Date | null) => setSelectedDate(date)}
-                                minDate={new Date()}
+                                minDate={today}
                                 inline
                                 calendarClassName="!bg-[#1a1a1e] !border-white/10 !text-white"
                                 dayClassName={(date: Date) =>
-                                    date < new Date(new Date().setHours(0, 0, 0, 0))
+                                    date < today
                                         ? '!text-gray-600 !cursor-not-allowed'
                                         : '!text-gray-200 hover:!bg-accent-primary/30'
                                 }
@@ -192,14 +201,13 @@ export function Modal() {
                             {selectedDate && (
                                 <p className="text-sm text-accent-primary mt-2">
                                     <Calendar size={14} className="inline mr-1" />
-                                    Selected: {selectedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    Selected: {selectedDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Footer */}
                 {modal.type !== 'select' && (
                     <div className="flex justify-end gap-2 p-4 border-t border-white/5">
                         <button
@@ -212,13 +220,13 @@ export function Modal() {
                             disabled={(modal.type === 'tree-select' && !selectedId) || (modal.type === 'date-picker' && !selectedDate)}
                             onClick={() => {
                                 if (modal.type === 'prompt') modal.onConfirm?.(inputValue);
-                                else if (modal.type === 'tree-select') modal.onConfirm?.(selectedId);
+                                else if (modal.type === 'tree-select') modal.onConfirm?.(selectedId ?? undefined);
                                 else if (modal.type === 'date-picker' && selectedDate) modal.onConfirm?.(selectedDate.toISOString());
                                 else modal.onConfirm?.();
                             }}
                             className={cn(
                                 "px-4 py-2 text-sm text-white rounded-lg transition-colors",
-                                ((modal.type === 'tree-select' && !selectedId) || (modal.type === 'date-picker' && !inputValue))
+                                ((modal.type === 'tree-select' && !selectedId) || (modal.type === 'date-picker' && !selectedDate))
                                     ? "bg-white/5 text-gray-500 cursor-not-allowed"
                                     : "bg-accent-primary hover:bg-accent-primary/80"
                             )}

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 
@@ -18,7 +18,28 @@ interface ContextMenuProps {
 
 export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ top: y, left: x });
+    const position = useMemo(() => {
+        const estimatedWidth = 170;
+        const estimatedHeight = actions.length * 38 + 8;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        let left = x;
+        let top = y;
+
+        if (left + estimatedWidth > viewportWidth) {
+            left = viewportWidth - estimatedWidth - 10;
+        }
+
+        if (top + estimatedHeight > viewportHeight) {
+            top = viewportHeight - estimatedHeight - 10;
+        }
+
+        return {
+            left: Math.max(10, left),
+            top: Math.max(10, top),
+        };
+    }, [actions.length, x, y]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -29,32 +50,6 @@ export function ContextMenu({ x, y, actions, onClose }: ContextMenuProps) {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
-
-    // Adjust position on mount to prevent overflow
-    useEffect(() => {
-        if (menuRef.current) {
-            const rect = menuRef.current.getBoundingClientRect();
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-
-            let newLeft = x;
-            let newTop = y;
-
-            // Prevent right overflow
-            if (x + rect.width > viewportWidth) {
-                newLeft = viewportWidth - rect.width - 10;
-            }
-            // Prevent bottom overflow
-            if (y + rect.height > viewportHeight) {
-                newTop = viewportHeight - rect.height - 10;
-            }
-            // Prevent left/top overflow
-            if (newLeft < 0) newLeft = 10;
-            if (newTop < 0) newTop = 10;
-
-            setPosition({ top: newTop, left: newLeft });
-        }
-    }, [x, y]);
 
     // Use Portal to render menu at document.body level (outside any overflow:hidden containers)
     return createPortal(
