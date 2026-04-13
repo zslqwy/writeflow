@@ -5,6 +5,7 @@ import { useJournalStore } from '../store/useJournalStore';
 import { useWritingStatsStore } from '../store/useWritingStatsStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useModalStore } from '../store/useModalStore';
+import { getLocalDateKey } from '../lib/date-utils';
 import { useI18n } from '../lib/i18n';
 import { downloadFile, readJsonFile } from '../lib/file-utils';
 import { Download, Upload, Trash2, FileJson, AlertTriangle } from 'lucide-react';
@@ -29,10 +30,15 @@ interface BackupData {
 }
 
 const isBackupData = (value: unknown): value is BackupData => {
-    return typeof value === 'object'
-        && value !== null
+    return isRecord(value)
         && 'files' in value
-        && 'settings' in value;
+        && isRecord(value.files)
+        && 'settings' in value
+        && isRecord(value.settings);
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 };
 
 export function DataSettings() {
@@ -65,7 +71,7 @@ export function DataSettings() {
             }
         };
 
-        const dateStr = new Date().toISOString().split('T')[0];
+        const dateStr = getLocalDateKey();
         downloadFile(JSON.stringify(data, null, 2), `writeflow-backup-${dateStr}.json`, 'json');
     };
 
@@ -92,7 +98,7 @@ export function DataSettings() {
                     if (data.writingStats) {
                         writingStatsStore.importStats(data.writingStats);
                     }
-                    if (data.language) {
+                    if (data.language === 'zh' || data.language === 'en') {
                         languageStore.setLanguage(data.language);
                     }
                     settingsStore.importSettings(data.settings);

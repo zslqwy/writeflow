@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Type, Target, ChevronDown, Timer as TimerIcon, Play, Square, Calendar, AlignCenter, Search, X, ArrowUp, ArrowDown, Home } from 'lucide-react';
+import { Type, Target, ChevronDown, Timer as TimerIcon, Play, Square, Calendar, AlignCenter, Search, X, ArrowUp, ArrowDown, Home, History, Save, RotateCcw, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useI18n } from '../lib/i18n';
 import { countWords } from '../lib/text-stats';
 import { useFocusStore } from '../store/useFocusStore';
-import { useFileStore, type FileStatus } from '../store/useFileStore';
+import { useFileStore, type FileStatus, type FileVersionSnapshot } from '../store/useFileStore';
 import { useModalStore } from '../store/useModalStore';
 import { useWritingStatsStore } from '../store/useWritingStatsStore';
 
@@ -22,11 +22,12 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
     const [selectionStart, setSelectionStart] = useState(0);
     const [fileSearchQuery, setFileSearchQuery] = useState('');
     const [fileSearchCursor, setFileSearchCursor] = useState(0);
+    const [isSnapshotPanelOpen, setIsSnapshotPanelOpen] = useState(false);
     const navigate = useNavigate();
 
     const { isFocusMode, timerActive, duration, startTime, startFocus, stopFocus } = useFocusStore();
-    const { updateFileMetadata, files } = useFileStore();
-    const { showPrompt, showSelect } = useModalStore();
+    const { updateFileMetadata, createFileSnapshot, restoreFileSnapshot, deleteFileSnapshot, files } = useFileStore();
+    const { showConfirm, showPrompt, showSelect } = useModalStore();
     const { locale, t } = useI18n();
     const recordWritingDelta = useWritingStatsStore((state) => state.recordWritingDelta);
 
@@ -38,6 +39,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
 
     const fileNode = files[fileId];
     const metadata = fileNode?.metadata;
+    const snapshots = fileNode?.versionSnapshots || [];
     const displayedTimeLeft = timerActive ? timeLeft : '';
 
     // Timer Logic
@@ -227,6 +229,45 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
         });
     };
 
+    const handleSaveSnapshot = () => {
+        const defaultTitle = `${t('snapshot.defaultTitle')} ${new Date().toLocaleString(locale, {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })}`;
+
+        showPrompt(t('snapshot.titlePrompt'), t('snapshot.titlePromptMessage'), defaultTitle, (title) => {
+            createFileSnapshot(fileId, title, value);
+            setIsSnapshotPanelOpen(true);
+        });
+    };
+
+    const handleRestoreSnapshot = (snapshot: FileVersionSnapshot) => {
+        showConfirm(
+            t('snapshot.restoreTitle'),
+            t('snapshot.restoreMessage', { title: snapshot.title }),
+            () => {
+                restoreFileSnapshot(fileId, snapshot.id);
+                setValue(snapshot.content);
+                setSelectionStart(0);
+                requestAnimationFrame(() => {
+                    textareaRef.current?.focus();
+                    textareaRef.current?.setSelectionRange(0, 0);
+                    syncEditorScrollToCaret(true);
+                });
+            }
+        );
+    };
+
+    const handleDeleteSnapshot = (snapshot: FileVersionSnapshot) => {
+        showConfirm(
+            t('snapshot.deleteTitle'),
+            t('snapshot.deleteMessage', { title: snapshot.title }),
+            () => deleteFileSnapshot(fileId, snapshot.id)
+        );
+    };
+
     return (
         <div className={cn(
             "flex flex-col h-full relative transition-all duration-700",
@@ -396,6 +437,93 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                         <Target size={12} />
                         <span>{(target > 0 || metadata?.deadline) ? t('editor.editGoals') : t('editor.setGoals')}</span>
                     </button>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsSnapshotPanelOpen((isOpen) => !isOpen)}
+                            className={cn(
+                                "px-3 py-1.5 text-xs rounded-md transition-colors flex items-center gap-2 border",
+                                isSnapshotPanelOpen
+                                    ? "border-amber-300/40 bg-amber-300/15 text-amber-100"
+                                    : "border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
+                            )}
+                            title={t('snapshot.panelTitle')}
+                        >
+                            <History size={13} />
+                            <span className="font-semibold">{t('snapshot.button')}</span>
+                        </button>
+
+                        {isSnapshotPanelOpen && (
+                            <div className="absolute right-0 top-10 z-[80] w-[380px] overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e]/95 shadow-2xl backdrop-blur-xl">
+                                <div className="border-b border-white/10 bg-white/[0.03] p-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <h3 className="font-serif text-lg font-semibold text-white">{t('snapshot.panelTitle')}</h3>
+                                            <p className="mt-1 text-xs leading-relaxed text-gray-500">{t('snapshot.panelDescription')}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setIsSnapshotPanelOpen(false)}
+                                            className="rounded-md p-1 text-gray-500 transition-colors hover:bg-white/10 hover:text-white"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                    <button
+                                        onClick={handleSaveSnapshot}
+                                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-300/15 px-3 py-2 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-300/25"
+                                    >
+                                        <Save size={14} />
+                                        {t('snapshot.save')}
+                                    </button>
+                                </div>
+
+                                <div className="max-h-96 space-y-2 overflow-y-auto p-3 custom-scrollbar">
+                                    {snapshots.length > 0 ? (
+                                        snapshots.map((snapshot) => (
+                                            <div
+                                                key={snapshot.id}
+                                                className="rounded-2xl border border-white/10 bg-black/20 p-3"
+                                            >
+                                                <div className="mb-2 flex items-start justify-between gap-3">
+                                                    <div className="min-w-0">
+                                                        <h4 className="truncate text-sm font-semibold text-gray-200">{snapshot.title}</h4>
+                                                        <p className="mt-1 text-[11px] text-gray-500">
+                                                            {t('snapshot.savedAt')} {formatSnapshotTime(snapshot.createdAt, locale)} · {snapshot.wordCount.toLocaleString()} {t('common.words')}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <p className="line-clamp-2 text-xs leading-relaxed text-gray-500">
+                                                    {getSnapshotPreview(snapshot.content, t('snapshot.previewEmpty'))}
+                                                </p>
+                                                <div className="mt-3 flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleRestoreSnapshot(snapshot)}
+                                                        className="flex items-center gap-1 rounded-lg border border-accent-primary/20 bg-accent-primary/10 px-2.5 py-1.5 text-[11px] font-semibold text-accent-primary transition-colors hover:bg-accent-primary/20"
+                                                    >
+                                                        <RotateCcw size={12} />
+                                                        {t('snapshot.restore')}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteSnapshot(snapshot)}
+                                                        className="flex items-center gap-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+                                                    >
+                                                        <Trash2 size={12} />
+                                                        {t('snapshot.delete')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="rounded-2xl border border-dashed border-white/10 px-4 py-8 text-center">
+                                            <History size={28} className="mx-auto mb-3 text-amber-200/70" />
+                                            <p className="text-sm font-medium text-gray-300">{t('snapshot.empty')}</p>
+                                            <p className="mt-2 text-xs leading-relaxed text-gray-600">{t('snapshot.emptyHint')}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Focus Toggle */}
                     <button
@@ -585,4 +713,19 @@ function getStatusLabel(status: FileStatus, t: ReturnType<typeof useI18n>['t']):
     if (status === 'brainstorming') return t('editor.statusBrainstorming');
     if (status === 'writing') return t('editor.statusWriting');
     return t('editor.statusCompleted');
+}
+
+function formatSnapshotTime(timestamp: number, locale: string): string {
+    return new Date(timestamp).toLocaleString(locale, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+function getSnapshotPreview(content: string, emptyText: string): string {
+    const preview = content.trim().replace(/\s+/g, ' ');
+    if (!preview) return emptyText;
+    return preview.length > 140 ? `${preview.slice(0, 140)}...` : preview;
 }
