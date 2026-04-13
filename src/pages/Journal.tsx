@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import { CalendarDays, Clock, Edit3, Plus, Trash2 } from 'lucide-react';
 
+import { getLocalDateKey } from '../lib/date-utils';
+import { countWords } from '../lib/text-stats';
 import { cn } from '../lib/utils';
 import { useJournalStore, type JournalEntry } from '../store/useJournalStore';
 import { useModalStore } from '../store/useModalStore';
+import { useWritingStatsStore } from '../store/useWritingStatsStore';
 
 interface JournalGroup {
     date: string;
@@ -13,8 +16,9 @@ interface JournalGroup {
 export function Journal() {
     const { entries, createEntry, updateEntry, deleteEntry } = useJournalStore();
     const { showConfirm } = useModalStore();
+    const recordWritingDelta = useWritingStatsStore((state) => state.recordWritingDelta);
     const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
-    const [draftDate, setDraftDate] = useState(getTodayKey);
+    const [draftDate, setDraftDate] = useState(getLocalDateKey);
 
     const entryList = useMemo(
         () => Object.values(entries).sort((a, b) => b.updatedAt - a.updatedAt),
@@ -34,6 +38,16 @@ export function Journal() {
             deleteEntry(entry.id);
             setSelectedEntryId(null);
         });
+    };
+
+    const handleContentChange = (entry: JournalEntry, content: string) => {
+        const previousCount = countWords(entry.content);
+        const nextCount = countWords(content);
+
+        updateEntry(entry.id, { content });
+        if (nextCount > previousCount) {
+            recordWritingDelta(nextCount - previousCount);
+        }
     };
 
     return (
@@ -164,7 +178,7 @@ export function Journal() {
 
                                 <textarea
                                     value={activeEntry.content}
-                                    onChange={(event) => updateEntry(activeEntry.id, { content: event.target.value })}
+                                    onChange={(event) => handleContentChange(activeEntry, event.target.value)}
                                     placeholder="这里可以写日记、随笔、碎片念头，或者一段还不知道该放在哪的文字..."
                                     className="min-h-[420px] flex-1 resize-none bg-transparent font-serif text-lg leading-relaxed text-gray-300 placeholder:text-gray-600 focus:outline-none"
                                     spellCheck={false}
@@ -208,15 +222,6 @@ function groupEntriesByDate(entries: JournalEntry[]): JournalGroup[] {
             entries: groupEntries.sort((a, b) => b.updatedAt - a.updatedAt),
         }))
         .sort((a, b) => b.date.localeCompare(a.date));
-}
-
-function getTodayKey(): string {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-
-    return `${year}-${month}-${day}`;
 }
 
 function formatDateLabel(date: string): string {

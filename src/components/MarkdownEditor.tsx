@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Type, Target, ChevronDown, Timer as TimerIcon, Play, Square, Calendar, AlignCenter, Search, X, ArrowUp, ArrowDown, Home } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { countWords } from '../lib/text-stats';
 import { useFocusStore } from '../store/useFocusStore';
 import { useFileStore, type FileStatus } from '../store/useFileStore';
 import { useModalStore } from '../store/useModalStore';
+import { useWritingStatsStore } from '../store/useWritingStatsStore';
 
 interface MarkdownEditorProps {
     content: string;
@@ -24,6 +26,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
     const { isFocusMode, timerActive, duration, startTime, startFocus, stopFocus } = useFocusStore();
     const { updateFileMetadata, files } = useFileStore();
     const { showPrompt, showSelect } = useModalStore();
+    const recordWritingDelta = useWritingStatsStore((state) => state.recordWritingDelta);
 
     const editorViewportRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -134,14 +137,19 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
 
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const newValue = e.target.value;
+        const previousCount = countWords(value);
+        const currentCount = countWords(newValue);
+
         setValue(newValue);
         setSelectionStart(e.target.selectionStart ?? 0);
         onChange(newValue);
 
         // Update word count in metadata
-        const currentCount = countWords(newValue);
         if (metadata?.wordCount !== currentCount) {
             updateFileMetadata(fileId, { wordCount: currentCount });
+        }
+        if (currentCount > previousCount) {
+            recordWritingDelta(currentCount - previousCount);
         }
 
         requestAnimationFrame(() => syncEditorScrollToCaret());
@@ -184,21 +192,6 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
         setFileSearchQuery('');
         setFileSearchCursor(0);
         textareaRef.current?.focus();
-    };
-
-    // Word count logic for mixed Chinese/English text
-    // Chinese characters count as 1 word each, English words separated by spaces
-    const countWords = (text: string): number => {
-        if (!text.trim()) return 0;
-
-        // Count Chinese characters (CJK range)
-        const chineseChars = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length;
-
-        // Remove Chinese characters and count remaining words (English/other)
-        const nonChinese = text.replace(/[\u4e00-\u9fff\u3400-\u4dbf]/g, ' ');
-        const englishWords = nonChinese.trim().split(/\s+/).filter(w => w.length > 0).length;
-
-        return chineseChars + englishWords;
     };
 
     const wordCount = countWords(value);

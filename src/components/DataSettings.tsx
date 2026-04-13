@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { useFileStore } from '../store/useFileStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useJournalStore } from '../store/useJournalStore';
+import { useWritingStatsStore } from '../store/useWritingStatsStore';
 import { useModalStore } from '../store/useModalStore';
 import { downloadFile, readJsonFile } from '../lib/file-utils';
 import { Download, Upload, Trash2, FileJson, AlertTriangle } from 'lucide-react';
@@ -12,6 +13,10 @@ interface BackupData {
     files: ReturnType<typeof useFileStore.getState>['files'];
     journal?: {
         entries: ReturnType<typeof useJournalStore.getState>['entries'];
+    };
+    writingStats?: {
+        dailyTargetWords: ReturnType<typeof useWritingStatsStore.getState>['dailyTargetWords'];
+        logs: ReturnType<typeof useWritingStatsStore.getState>['logs'];
     };
     settings: {
         modelConfigs: ReturnType<typeof useSettingsStore.getState>['modelConfigs'];
@@ -31,6 +36,7 @@ export function DataSettings() {
     const fileStore = useFileStore();
     const settingsStore = useSettingsStore();
     const journalStore = useJournalStore();
+    const writingStatsStore = useWritingStatsStore();
     const { showConfirm } = useModalStore();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +47,10 @@ export function DataSettings() {
             files: fileStore.files,
             journal: {
                 entries: journalStore.entries,
+            },
+            writingStats: {
+                dailyTargetWords: writingStatsStore.dailyTargetWords,
+                logs: writingStatsStore.logs,
             },
             settings: {
                 modelConfigs: settingsStore.modelConfigs,
@@ -73,6 +83,9 @@ export function DataSettings() {
                     if (data.journal?.entries) {
                         journalStore.importEntries(data.journal.entries);
                     }
+                    if (data.writingStats) {
+                        writingStatsStore.importStats(data.writingStats);
+                    }
                     settingsStore.importSettings(data.settings);
                     // Force reload to ensure everything is fresh? Or just let React handle updates.
                     // React should handle it since stores notify listeners.
@@ -99,7 +112,7 @@ export function DataSettings() {
                     <div className="p-4 border border-white/5 rounded-lg bg-white/[0.02]">
                         <h4 className="font-medium text-gray-200 mb-2">Backup</h4>
                         <p className="text-sm text-gray-500 mb-4">
-                            Save your files, journal entries, settings, and chats to a local JSON file.
+                            Save your files, journal entries, writing stats, settings, and chats to a local JSON file.
                         </p>
                         <button
                             onClick={handleBackup}
