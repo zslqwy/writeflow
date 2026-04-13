@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { Type, Target, ChevronDown, Timer as TimerIcon, Play, Square, Calendar, AlignCenter, Search, X, ArrowUp, ArrowDown, Home } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useI18n } from '../lib/i18n';
 import { countWords } from '../lib/text-stats';
 import { useFocusStore } from '../store/useFocusStore';
 import { useFileStore, type FileStatus } from '../store/useFileStore';
@@ -26,6 +27,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
     const { isFocusMode, timerActive, duration, startTime, startFocus, stopFocus } = useFocusStore();
     const { updateFileMetadata, files } = useFileStore();
     const { showPrompt, showSelect } = useModalStore();
+    const { locale, t } = useI18n();
     const recordWritingDelta = useWritingStatsStore((state) => state.recordWritingDelta);
 
     const editorViewportRef = useRef<HTMLDivElement>(null);
@@ -205,7 +207,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
             stopFocus();
         } else {
             // Ask for duration
-            showPrompt('Start Focus Session', 'Enter duration in minutes:', '25', (val) => {
+            showPrompt(t('editor.startFocus'), t('editor.focusDuration'), '25', (val) => {
                 const min = parseInt(val, 10);
                 if (!isNaN(min) && min > 0) {
                     startFocus(min);
@@ -216,11 +218,11 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
 
     const handleStatusClick = () => {
         const options = [
-            { id: 'brainstorming', label: '🟡 Brainstorming' },
-            { id: 'writing', label: '🔵 Writing' },
-            { id: 'completed', label: '🟢 Completed' }
+            { id: 'brainstorming', label: `🟡 ${t('editor.statusBrainstorming')}` },
+            { id: 'writing', label: `🔵 ${t('editor.statusWriting')}` },
+            { id: 'completed', label: `🟢 ${t('editor.statusCompleted')}` }
         ];
-        showSelect('Set Status', 'Choose file status:', options, (id) => {
+        showSelect(t('editor.setStatus'), t('editor.chooseStatus'), options, (id) => {
             updateFileMetadata(fileId, { status: id as FileStatus });
         });
     };
@@ -241,7 +243,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                     <button
                         onClick={() => navigate('/')}
                         className="p-2 rounded-md text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
-                        title="Back to Dashboard"
+                        title={t('editor.backDashboard')}
                     >
                         <Home size={16} />
                     </button>
@@ -256,7 +258,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                             !metadata?.status && "bg-white/5 text-gray-500"
                         )}
                     >
-                        {metadata?.status ? metadata.status.charAt(0).toUpperCase() + metadata.status.slice(1) : 'Set Status'}
+                        {metadata?.status ? getStatusLabel(metadata.status, t) : t('editor.setStatus')}
                         <ChevronDown size={10} />
                     </button>
 
@@ -282,7 +284,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                                     handleFileSearchStep(e.shiftKey ? 'previous' : 'next');
                                 }
                             }}
-                            placeholder="Find in file"
+                            placeholder={t('editor.findInFile')}
                             className="w-24 bg-transparent text-xs text-gray-300 placeholder:text-gray-600 focus:outline-none"
                         />
                         {fileSearchQuery && (
@@ -294,7 +296,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                             onClick={() => handleFileSearchStep('previous')}
                             disabled={fileSearchMatches.length === 0}
                             className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-30"
-                            title="Previous match"
+                            title={t('editor.previousMatch')}
                         >
                             <ArrowUp size={12} />
                         </button>
@@ -302,7 +304,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                             onClick={() => handleFileSearchStep('next')}
                             disabled={fileSearchMatches.length === 0}
                             className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300 disabled:cursor-not-allowed disabled:opacity-30"
-                            title="Next match"
+                            title={t('editor.nextMatch')}
                         >
                             <ArrowDown size={12} />
                         </button>
@@ -310,7 +312,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                             <button
                                 onClick={clearFileSearch}
                                 className="rounded p-1 text-gray-500 hover:bg-white/10 hover:text-gray-300"
-                                title="Clear file search"
+                                title={t('editor.clearSearch')}
                             >
                                 <X size={12} />
                             </button>
@@ -320,8 +322,8 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                     {/* Progress */}
                     <div className="flex items-center gap-2 text-xs">
                         {target > 0 ? (
-                            <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors" title={`Target: ${target}`} onClick={() => {
-                                showPrompt('Update Target', 'Set new word count target:', target.toString(), (val) => {
+                            <div className="flex items-center gap-2 cursor-pointer hover:text-white transition-colors" title={`${t('editor.target')}: ${target}`} onClick={() => {
+                                showPrompt(t('editor.updateTarget'), t('editor.setNewWordTarget'), target.toString(), (val) => {
                                     const num = parseInt(val, 10);
                                     if (!isNaN(num)) updateFileMetadata(fileId, { targetWordCount: num });
                                 });
@@ -334,7 +336,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                         ) : (
                             <div className="flex items-center gap-2">
                                 <Type size={14} />
-                                <span>{wordCount} words</span>
+                                <span>{t('editor.words', { count: wordCount })}</span>
                             </div>
                         )}
                     </div>
@@ -352,10 +354,10 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                                 <Calendar size={12} />
                                 <span>
                                     {daysLeft < 0
-                                        ? `Overdue ${Math.abs(daysLeft)}d`
+                                        ? t('editor.overdue', { count: Math.abs(daysLeft) })
                                         : daysLeft === 0
-                                            ? 'Due today'
-                                            : `${daysLeft}d left`
+                                            ? t('editor.dueToday')
+                                            : t('editor.daysLeft', { count: daysLeft })
                                     }
                                 </span>
                             </div>
@@ -365,18 +367,18 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                     {/* Goal Settings - More Prominent */}
                     <button
                         onClick={() => {
-                            showSelect('Writing Goals', 'Set your writing targets:', [
-                                { id: 'target', label: `📊 Word Target ${target > 0 ? `(Current: ${target})` : '(Not set)'}` },
-                                { id: 'deadline', label: `📅 Deadline ${metadata?.deadline ? `(${new Date(metadata.deadline).toLocaleDateString()})` : '(Not set)'}` },
+                            showSelect(t('editor.writingGoals'), t('editor.setWritingTargets'), [
+                                { id: 'target', label: `📊 ${t('editor.wordTarget')} ${target > 0 ? `(${t('common.current')}: ${target})` : `(${t('common.notSet')})`}` },
+                                { id: 'deadline', label: `📅 ${t('editor.deadline')} ${metadata?.deadline ? `(${new Date(metadata.deadline).toLocaleDateString(locale)})` : `(${t('common.notSet')})`}` },
                             ], (choice) => {
                                 if (choice === 'target') {
-                                    showPrompt('Set Word Target', 'Enter your word count goal:', target > 0 ? target.toString() : '500', (val) => {
+                                    showPrompt(t('editor.setWordTarget'), t('editor.enterWordGoal'), target > 0 ? target.toString() : '500', (val) => {
                                         const num = parseInt(val, 10);
                                         if (!isNaN(num) && num > 0) updateFileMetadata(fileId, { targetWordCount: num });
                                     });
                                 } else if (choice === 'deadline') {
                                     const { showDatePicker } = useModalStore.getState();
-                                    showDatePicker('Set Deadline', 'Choose your deadline date:',
+                                    showDatePicker(t('editor.setDeadline'), t('editor.chooseDeadline'),
                                         metadata?.deadline ? new Date(metadata.deadline).toISOString().split('T')[0] : null,
                                         (date) => {
                                             updateFileMetadata(fileId, { deadline: date.getTime() });
@@ -392,7 +394,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                         )}
                     >
                         <Target size={12} />
-                        <span>{(target > 0 || metadata?.deadline) ? "Edit Goals" : "Set Goals"}</span>
+                        <span>{(target > 0 || metadata?.deadline) ? t('editor.editGoals') : t('editor.setGoals')}</span>
                     </button>
 
                     {/* Focus Toggle */}
@@ -404,10 +406,10 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                                 ? "text-red-400 hover:bg-red-500/10"
                                 : "text-accent-primary hover:bg-white/10"
                         )}
-                        title={isFocusMode ? "Stop Focus Session" : "Start Focus Session"}
+                        title={isFocusMode ? t('editor.stopFocus') : t('editor.startFocus')}
                     >
                         {isFocusMode ? <Square size={16} fill="currentColor" /> : <Play size={16} />}
-                        <span className="text-xs font-semibold">{isFocusMode ? "Stop" : "Focus"}</span>
+                        <span className="text-xs font-semibold">{isFocusMode ? t('editor.stop') : t('editor.focus')}</span>
                     </button>
 
                     <button
@@ -426,10 +428,10 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                                 ? "border-accent-secondary/40 bg-accent-secondary/15 text-accent-secondary"
                                 : "border-white/10 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10"
                         )}
-                        title={isTypewriterMode ? "Disable Typewriter Mode" : "Enable Typewriter Mode"}
+                        title={isTypewriterMode ? t('editor.disableTypewriter') : t('editor.enableTypewriter')}
                     >
                         <AlignCenter size={16} />
-                        <span className="text-xs font-semibold">Typewriter</span>
+                        <span className="text-xs font-semibold">{t('editor.typewriter')}</span>
                     </button>
                 </div>
             </div>
@@ -483,7 +485,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                         onClick={handleSelectionSync}
                         onKeyUp={handleSelectionSync}
                         onSelect={handleSelectionSync}
-                        placeholder="Start writing..."
+                        placeholder={t('editor.placeholder')}
                         className={cn(
                             "w-full bg-transparent border-none focus:outline-none resize-none font-serif leading-relaxed selection:bg-accent-primary/30 overflow-hidden placeholder:text-gray-600",
                             isFocusMode ? "text-xl md:text-2xl mt-12 text-transparent caret-accent-primary relative z-10" : "text-lg text-gray-300",
@@ -500,7 +502,7 @@ export function MarkdownEditor({ content, onChange, fileName, fileId }: Markdown
                 <div className="fixed bottom-6 right-6 flex flex-col items-end gap-1 opacity-20 hover:opacity-100 transition-opacity">
                     {timerActive && <span className="text-4xl font-mono text-gray-500">{displayedTimeLeft}</span>}
                     <span className="text-xs text-gray-600">
-                        {isTypewriterMode ? 'Focus + Typewriter Mode Active' : 'Focus Mode Active'}
+                        {isTypewriterMode ? t('editor.focusTypewriterActive') : t('editor.focusActive')}
                     </span>
                 </div>
             )}
@@ -577,4 +579,10 @@ function getFileSearchMatches(text: string, query: string): SearchMatch[] {
     }
 
     return matches;
+}
+
+function getStatusLabel(status: FileStatus, t: ReturnType<typeof useI18n>['t']): string {
+    if (status === 'brainstorming') return t('editor.statusBrainstorming');
+    if (status === 'writing') return t('editor.statusWriting');
+    return t('editor.statusCompleted');
 }

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { CalendarDays, Clock, Edit3, Plus, Trash2 } from 'lucide-react';
 
 import { getLocalDateKey } from '../lib/date-utils';
+import { useI18n } from '../lib/i18n';
 import { countWords } from '../lib/text-stats';
 import { cn } from '../lib/utils';
 import { useJournalStore, type JournalEntry } from '../store/useJournalStore';
@@ -16,6 +17,7 @@ interface JournalGroup {
 export function Journal() {
     const { entries, createEntry, updateEntry, deleteEntry } = useJournalStore();
     const { showConfirm } = useModalStore();
+    const { locale, t } = useI18n();
     const recordWritingDelta = useWritingStatsStore((state) => state.recordWritingDelta);
     const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
     const [draftDate, setDraftDate] = useState(getLocalDateKey);
@@ -29,12 +31,12 @@ export function Journal() {
     const activeEntry = selectedEntry || entryList[0] || null;
 
     const handleCreateEntry = () => {
-        const id = createEntry(draftDate, `随记 ${formatShortTime(new Date())}`);
+        const id = createEntry(draftDate, `${t('journal.unnamed')} ${formatShortTime(new Date(), locale)}`);
         setSelectedEntryId(id);
     };
 
     const handleDeleteEntry = (entry: JournalEntry) => {
-        showConfirm('Delete Journal Entry', `Delete "${entry.title || 'Untitled'}"?`, () => {
+        showConfirm(t('journal.deleteTitle'), t('journal.deleteMessage', { title: entry.title || t('journal.unnamed') }), () => {
             deleteEntry(entry.id);
             setSelectedEntryId(null);
         });
@@ -60,16 +62,16 @@ export function Journal() {
                         <div>
                             <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-accent-primary">
                                 <Edit3 size={14} />
-                                Journal
+                                {t('journal.kicker')}
                             </p>
-                            <h2 className="font-serif text-4xl font-bold text-white">随记</h2>
+                            <h2 className="font-serif text-4xl font-bold text-white">{t('journal.title')}</h2>
                             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-400">
-                                用来暂存日记、随笔、随感和那些不一定属于某个项目的临时文字。按日期归档，之后想整理进正文也不会丢。
+                                {t('journal.description')}
                             </p>
                         </div>
 
                         <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 md:min-w-72">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">Create for date</label>
+                            <label className="text-xs font-semibold uppercase tracking-wider text-gray-500">{t('journal.createForDate')}</label>
                             <div className="flex gap-2">
                                 <input
                                     type="date"
@@ -82,7 +84,7 @@ export function Journal() {
                                     className="flex items-center gap-2 rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/80"
                                 >
                                     <Plus size={16} />
-                                    New
+                                    {t('journal.new')}
                                 </button>
                             </div>
                         </div>
@@ -93,23 +95,23 @@ export function Journal() {
                     <aside className="rounded-3xl border border-white/10 bg-white/[0.03] p-4 glass">
                         <div className="mb-4 flex items-center justify-between">
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-200">按日期查看</h3>
-                                <p className="text-xs text-gray-500">{entryList.length} entries</p>
+                                <h3 className="text-sm font-semibold text-gray-200">{t('journal.byDate')}</h3>
+                                <p className="text-xs text-gray-500">{entryList.length} {t('common.entries')}</p>
                             </div>
                             <CalendarDays size={18} className="text-accent-primary" />
                         </div>
 
                         {groupedEntries.length === 0 ? (
                             <div className="rounded-2xl border border-dashed border-white/10 px-4 py-10 text-center">
-                                <p className="text-sm text-gray-500">还没有随记。</p>
-                                <p className="mt-2 text-xs text-gray-600">先从今天的一句话开始。</p>
+                                <p className="text-sm text-gray-500">{t('journal.noEntries')}</p>
+                                <p className="mt-2 text-xs text-gray-600">{t('journal.startHint')}</p>
                             </div>
                         ) : (
                             <div className="max-h-[calc(100vh-310px)] space-y-4 overflow-y-auto pr-1 custom-scrollbar">
                                 {groupedEntries.map((group) => (
                                     <section key={group.date}>
                                         <div className="sticky top-0 z-10 mb-2 rounded-full border border-white/10 bg-[#1a1a1e]/90 px-3 py-1.5 text-xs font-semibold text-gray-400 backdrop-blur-md">
-                                            {formatDateLabel(group.date)}
+                                            {formatDateLabel(group.date, locale)}
                                         </div>
                                         <div className="space-y-2">
                                             {group.entries.map((entry) => (
@@ -124,11 +126,11 @@ export function Journal() {
                                                     )}
                                                 >
                                                     <div className="flex items-center justify-between gap-3">
-                                                        <h4 className="truncate text-sm font-semibold text-gray-200">{entry.title || '未命名随记'}</h4>
-                                                        <span className="shrink-0 text-[10px] text-gray-500">{formatShortTime(new Date(entry.updatedAt))}</span>
+                                                        <h4 className="truncate text-sm font-semibold text-gray-200">{entry.title || t('journal.unnamed')}</h4>
+                                                        <span className="shrink-0 text-[10px] text-gray-500">{formatShortTime(new Date(entry.updatedAt), locale)}</span>
                                                     </div>
                                                     <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">
-                                                        {entry.content.trim() || '空白记录'}
+                                                        {entry.content.trim() || t('journal.blank')}
                                                     </p>
                                                 </button>
                                             ))}
@@ -148,7 +150,7 @@ export function Journal() {
                                             value={activeEntry.title}
                                             onChange={(event) => updateEntry(activeEntry.id, { title: event.target.value })}
                                             className="w-full bg-transparent font-serif text-3xl font-bold text-white focus:outline-none"
-                                            placeholder="给这条随记起个名字..."
+                                            placeholder={t('journal.titlePlaceholder')}
                                         />
                                         <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
                                             <label className="flex items-center gap-2">
@@ -162,7 +164,7 @@ export function Journal() {
                                             </label>
                                             <span className="flex items-center gap-1">
                                                 <Clock size={13} />
-                                                Updated {formatShortDateTime(activeEntry.updatedAt)}
+                                                {t('journal.updated')} {formatShortDateTime(activeEntry.updatedAt, locale)}
                                             </span>
                                         </div>
                                     </div>
@@ -170,7 +172,7 @@ export function Journal() {
                                     <button
                                         onClick={() => handleDeleteEntry(activeEntry)}
                                         className="self-start rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-400 transition-colors hover:bg-red-500/20"
-                                        title="Delete entry"
+                                        title={t('journal.deleteEntry')}
                                     >
                                         <Trash2 size={16} />
                                     </button>
@@ -179,7 +181,7 @@ export function Journal() {
                                 <textarea
                                     value={activeEntry.content}
                                     onChange={(event) => handleContentChange(activeEntry, event.target.value)}
-                                    placeholder="这里可以写日记、随笔、碎片念头，或者一段还不知道该放在哪的文字..."
+                                    placeholder={t('journal.textPlaceholder')}
                                     className="min-h-[420px] flex-1 resize-none bg-transparent font-serif text-lg leading-relaxed text-gray-300 placeholder:text-gray-600 focus:outline-none"
                                     spellCheck={false}
                                 />
@@ -187,16 +189,16 @@ export function Journal() {
                         ) : (
                             <div className="flex h-full min-h-[500px] flex-col items-center justify-center rounded-3xl border border-dashed border-white/10 text-center">
                                 <Edit3 size={36} className="mb-4 text-accent-primary" />
-                                <h3 className="font-serif text-2xl font-semibold text-white">写下第一条随记</h3>
+                                <h3 className="font-serif text-2xl font-semibold text-white">{t('journal.firstTitle')}</h3>
                                 <p className="mt-2 max-w-sm text-sm leading-relaxed text-gray-500">
-                                    它不需要属于任何项目，也不需要一开始就完整。
+                                    {t('journal.firstDescription')}
                                 </p>
                                 <button
                                     onClick={handleCreateEntry}
                                     className="mt-6 flex items-center gap-2 rounded-lg bg-accent-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/80"
                                 >
                                     <Plus size={16} />
-                                    New Entry
+                                    {t('journal.newEntry')}
                                 </button>
                             </div>
                         )}
@@ -224,9 +226,9 @@ function groupEntriesByDate(entries: JournalEntry[]): JournalGroup[] {
         .sort((a, b) => b.date.localeCompare(a.date));
 }
 
-function formatDateLabel(date: string): string {
+function formatDateLabel(date: string, locale: string): string {
     const parsedDate = new Date(`${date}T00:00:00`);
-    return parsedDate.toLocaleDateString('zh-CN', {
+    return parsedDate.toLocaleDateString(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -234,15 +236,15 @@ function formatDateLabel(date: string): string {
     });
 }
 
-function formatShortTime(date: Date): string {
-    return date.toLocaleTimeString('zh-CN', {
+function formatShortTime(date: Date, locale: string): string {
+    return date.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
     });
 }
 
-function formatShortDateTime(timestamp: number): string {
-    return new Date(timestamp).toLocaleString('zh-CN', {
+function formatShortDateTime(timestamp: number, locale: string): string {
+    return new Date(timestamp).toLocaleString(locale, {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Journal } from './pages/Journal';
+import { TrophyWall } from './pages/TrophyWall';
 import { Modal } from './components/ui/Modal';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
                     <Route index element={<Dashboard />} />
                     <Route path="editor/:fileId" element={<Editor />} />
                     <Route path="journal" element={<Journal />} />
+                    <Route path="trophies" element={<TrophyWall />} />
                     <Route path="inspirations" element={<div className="p-10 text-gray-500">Inspirations Module Coming Soon...</div>} />
                 </Route>
             </Routes>

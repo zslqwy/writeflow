@@ -3,19 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Calendar, CheckCircle2, FileText, Flame, Settings2, Target, Trophy } from 'lucide-react';
 
 import { addLocalDays, getLocalDateKey, parseLocalDateKey, startOfLocalDay } from '../lib/date-utils';
+import { useI18n } from '../lib/i18n';
+import { getCurrentStreak, getLongestStreak, getNextTrophyTargetForStreak, getTrophyMilestoneText, TROPHY_MILESTONES } from '../lib/trophy-utils';
 import { cn } from '../lib/utils';
 import { useFileStore } from '../store/useFileStore';
 import { useModalStore } from '../store/useModalStore';
 import { useWritingStatsStore, type DailyWritingLog } from '../store/useWritingStatsStore';
 
 const HEATMAP_DAY_COUNT = 112;
-const TROPHY_MILESTONES = [
-    { days: 3, label: '青铜杯' },
-    { days: 7, label: '银杯' },
-    { days: 14, label: '金杯' },
-    { days: 30, label: '长跑杯' },
-    { days: 60, label: '史诗杯' },
-];
 
 type HeatmapDay = {
     date: string;
@@ -28,6 +23,7 @@ export function Dashboard() {
     const { files, openFile } = useFileStore();
     const { showPrompt } = useModalStore();
     const { dailyTargetWords, logs, setDailyTargetWords } = useWritingStatsStore();
+    const { language, locale, t } = useI18n();
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(() => Date.now());
 
@@ -63,11 +59,16 @@ export function Dashboard() {
         () => getHeatmapDays(logs, dailyTargetWords, new Date(currentTime)),
         [dailyTargetWords, logs, currentTime]
     );
-    const nextTrophy = TROPHY_MILESTONES.find((trophy) => trophy.days > currentStreak);
+    const nextTrophy = getNextTrophyTargetForStreak(currentStreak);
+    const nextTrophyText = getTrophyMilestoneText(nextTrophy.milestone, language);
     const totalLoggedWords = useMemo(
         () => Object.values(logs).reduce((total, log) => total + log.words, 0),
         [logs]
     );
+    const maxTrophyDays = TROPHY_MILESTONES[TROPHY_MILESTONES.length - 1].days;
+    const currentTrophyCycleDays = currentStreak > 0
+        ? currentStreak % maxTrophyDays || maxTrophyDays
+        : 0;
 
     const getDaysRemaining = (deadline?: number) => {
         if (!deadline) return null;
@@ -81,7 +82,7 @@ export function Dashboard() {
     };
 
     const handleTargetEdit = () => {
-        showPrompt('Daily Writing Target', 'Set your daily word target:', dailyTargetWords.toString(), (value) => {
+        showPrompt(t('dashboard.dailyTargetPromptTitle'), t('dashboard.dailyTargetPromptMessage'), dailyTargetWords.toString(), (value) => {
             const nextTarget = Number.parseInt(value, 10);
             if (!Number.isNaN(nextTarget) && nextTarget > 0) {
                 setDailyTargetWords(nextTarget);
@@ -92,9 +93,9 @@ export function Dashboard() {
     return (
         <div className="p-8 max-w-6xl mx-auto animate-in fade-in duration-500">
             <header className="mb-12">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-accent-primary">WriteFlow Studio</p>
-                <h2 className="text-4xl font-serif font-bold text-white mb-2">Good evening, Writer.</h2>
-                <p className="text-gray-400">今天写下的每一个字，都会在这里留下痕迹。</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-accent-primary">{t('dashboard.kicker')}</p>
+                <h2 className="text-4xl font-serif font-bold text-white mb-2">{t('dashboard.greeting')}</h2>
+                <p className="text-gray-400">{t('dashboard.subtitle')}</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
@@ -102,7 +103,7 @@ export function Dashboard() {
                     <div className="absolute -right-10 -top-12 h-28 w-28 rounded-full bg-accent-primary/20 blur-2xl" />
                     <div className="relative">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-accent-primary transition-colors">今日目标</h3>
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-accent-primary transition-colors">{t('dashboard.dailyTarget')}</h3>
                             <div className="w-8 h-8 rounded-full bg-accent-primary/20 flex items-center justify-center text-accent-primary">
                                 <Target size={14} />
                             </div>
@@ -119,14 +120,16 @@ export function Dashboard() {
                         </div>
                         <div className="mt-4 flex items-center justify-between gap-3 text-xs">
                             <span className={todayComplete ? "text-green-400" : "text-gray-500"}>
-                                {todayComplete ? '今日已打卡' : `还差 ${Math.max(dailyTargetWords - todayWords, 0).toLocaleString()} 字`}
+                                {todayComplete
+                                    ? t('dashboard.todayComplete')
+                                    : `${t('dashboard.remainingPrefix')} ${Math.max(dailyTargetWords - todayWords, 0).toLocaleString()} ${t('common.words')}`}
                             </span>
                             <button
                                 onClick={handleTargetEdit}
                                 className="flex items-center gap-1 text-gray-500 transition-colors hover:text-white"
                             >
                                 <Settings2 size={12} />
-                                调整
+                                {t('dashboard.adjust')}
                             </button>
                         </div>
                     </div>
@@ -134,19 +137,20 @@ export function Dashboard() {
 
                 <div className="p-6 rounded-2xl glass hover:bg-white/5 transition-colors cursor-default group">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-orange-300 transition-colors">连续打卡</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-orange-300 transition-colors">{t('dashboard.currentStreak')}</h3>
                         <div className="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-300">
                             <Flame size={14} />
                         </div>
                     </div>
                     <p className="text-3xl font-bold text-white">
                         {currentStreak}
-                        <span className="text-sm font-normal text-gray-500"> days</span>
+                        <span className="text-sm font-normal text-gray-500"> {t('common.days')}</span>
                     </p>
-                    <p className="text-xs text-gray-500 mt-2">最长连续 {longestStreak} 天</p>
+                    <p className="text-xs text-gray-500 mt-2">{t('dashboard.longestStreak')} {longestStreak} {t('common.days')}</p>
                     <div className="mt-4 flex flex-wrap gap-2">
                         {TROPHY_MILESTONES.map((trophy) => {
-                            const earned = currentStreak >= trophy.days;
+                            const earned = currentTrophyCycleDays >= trophy.days;
+                            const trophyText = getTrophyMilestoneText(trophy, language);
 
                             return (
                                 <span
@@ -159,33 +163,40 @@ export function Dashboard() {
                                     )}
                                 >
                                     <Trophy size={10} />
-                                    {trophy.label}
+                                    {trophyText.label}
                                 </span>
                             );
                         })}
                     </div>
+                    <button
+                        onClick={() => navigate('/trophies')}
+                        className="mt-4 flex items-center gap-1 text-xs font-semibold text-amber-200/80 transition-colors hover:text-amber-100"
+                    >
+                        <Trophy size={12} />
+                        {t('dashboard.viewTrophies')}
+                    </button>
                 </div>
 
                 <div className="p-6 rounded-2xl glass hover:bg-white/5 transition-colors cursor-default group">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-accent-secondary transition-colors">Total Words</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-accent-secondary transition-colors">{t('dashboard.totalWords')}</h3>
                         <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-accent-secondary">
                             <FileText size={14} />
                         </div>
                     </div>
                     <p className="text-3xl font-bold text-white">{totalWords.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500 mt-2">Across {fileCount} documents</p>
+                    <p className="text-xs text-gray-500 mt-2">{t('dashboard.acrossDocuments', { count: fileCount })}</p>
                 </div>
 
                 <div className="p-6 rounded-2xl glass hover:bg-white/5 transition-colors cursor-default group">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-green-400 transition-colors">Active Plans</h3>
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 group-hover:text-green-400 transition-colors">{t('dashboard.activePlans')}</h3>
                         <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400">
                             <Calendar size={14} />
                         </div>
                     </div>
                     <p className="text-3xl font-bold text-white">{activePlans.length}</p>
-                    <p className="text-xs text-gray-500 mt-2">Projects in progress</p>
+                    <p className="text-xs text-gray-500 mt-2">{t('dashboard.projectsInProgress')}</p>
                 </div>
             </div>
 
@@ -194,17 +205,15 @@ export function Dashboard() {
                     <div>
                         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-accent-primary">
                             <CheckCircle2 size={14} />
-                            Writing Heatmap
+                            {t('dashboard.heatmapLabel')}
                         </div>
-                        <h3 className="font-serif text-2xl font-bold text-white">近 16 周写作热力图</h3>
+                        <h3 className="font-serif text-2xl font-bold text-white">{t('dashboard.heatmapTitle')}</h3>
                         <p className="mt-1 text-sm text-gray-500">
-                            已记录 {totalLoggedWords.toLocaleString()} 个新增字数；达到每日目标后会自动算作一次打卡。
+                            {t('dashboard.heatmapDescription', { count: totalLoggedWords.toLocaleString() })}
                         </p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-gray-400">
-                        {nextTrophy
-                            ? `距离「${nextTrophy.label}」还差 ${nextTrophy.days - currentStreak} 天`
-                            : '奖杯墙已全部点亮'}
+                        {t('dashboard.nextTrophy', { name: nextTrophyText.label, count: nextTrophy.remainingDays })}
                     </div>
                 </div>
 
@@ -216,7 +225,7 @@ export function Dashboard() {
                         {heatmapDays.map((day) => (
                             <div
                                 key={day.date}
-                                title={`${formatDateLabel(day.date)}: ${day.words.toLocaleString()} words`}
+                            title={`${formatDateLabel(day.date, locale)}: ${day.words.toLocaleString()} ${t('common.words')}`}
                                 className={cn(
                                     "h-3 w-3 rounded-[3px] border transition-transform hover:scale-125",
                                     getHeatmapCellClass(day.level),
@@ -228,7 +237,7 @@ export function Dashboard() {
                 </div>
 
                 <div className="mt-5 flex items-center justify-between gap-4 text-xs text-gray-600">
-                    <span>Less</span>
+                    <span>{t('common.less')}</span>
                     <div className="flex items-center gap-1">
                         {[0, 1, 2, 3, 4].map((level) => (
                             <span
@@ -237,14 +246,14 @@ export function Dashboard() {
                             />
                         ))}
                     </div>
-                    <span>More</span>
+                    <span>{t('common.more')}</span>
                 </div>
             </section>
 
             <section>
                 <div className="flex items-center justify-between mb-6">
                     <h3 className="text-lg font-semibold text-gray-300 flex items-center gap-2">
-                        Active Writing Plans
+                        {t('dashboard.activeWritingPlans')}
                     </h3>
                 </div>
 
@@ -289,7 +298,9 @@ export function Dashboard() {
                                                     daysLeft <= 3 ? "border-orange-500/20 bg-orange-500/10 text-orange-400" :
                                                         "border-white/5 bg-white/5 text-gray-400"
                                             )}>
-                                                {daysLeft < 0 ? `${Math.abs(daysLeft)}d overdue` : `${daysLeft}d left`}
+                                                {daysLeft < 0
+                                                    ? t('dashboard.overdue', { count: Math.abs(daysLeft) })
+                                                    : t('dashboard.daysLeft', { count: daysLeft })}
                                             </div>
                                         )}
                                     </div>
@@ -297,7 +308,7 @@ export function Dashboard() {
                                     {file.metadata?.targetWordCount ? (
                                         <div className="mt-4">
                                             <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                                <span>Progress</span>
+                                                <span>{t('dashboard.progress')}</span>
                                                 <span>{file.metadata.wordCount} / {file.metadata.targetWordCount} ({progress}%)</span>
                                             </div>
                                             <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
@@ -312,7 +323,7 @@ export function Dashboard() {
                                         </div>
                                     ) : (
                                         <div className="mt-4 text-xs text-gray-500">
-                                            {file.metadata?.wordCount} words written
+                                            {t('dashboard.wordsWritten', { count: file.metadata?.wordCount || 0 })}
                                         </div>
                                     )}
 
@@ -325,8 +336,8 @@ export function Dashboard() {
                     </div>
                 ) : (
                     <div className="text-center py-12 border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
-                        <p className="text-gray-500 mb-2">No active plans.</p>
-                        <p className="text-sm text-gray-600">Set a target or deadline for your files to see them here.</p>
+                        <p className="text-gray-500 mb-2">{t('dashboard.noActivePlans')}</p>
+                        <p className="text-sm text-gray-600">{t('dashboard.noActivePlansHint')}</p>
                     </div>
                 )}
             </section>
@@ -337,51 +348,6 @@ export function Dashboard() {
 function getProgress(current: number, target?: number) {
     if (!target || target === 0) return 0;
     return Math.min(100, Math.round((current / target) * 100));
-}
-
-function getDayWords(logs: Record<string, DailyWritingLog>, date: Date): number {
-    return logs[getLocalDateKey(date)]?.words || 0;
-}
-
-function getCurrentStreak(logs: Record<string, DailyWritingLog>, target: number, now: Date): number {
-    if (target <= 0) return 0;
-
-    const today = startOfLocalDay(now);
-    const todayComplete = getDayWords(logs, today) >= target;
-    let cursor = todayComplete ? today : addLocalDays(today, -1);
-    let streak = 0;
-
-    while (getDayWords(logs, cursor) >= target) {
-        streak += 1;
-        cursor = addLocalDays(cursor, -1);
-    }
-
-    return streak;
-}
-
-function getLongestStreak(logs: Record<string, DailyWritingLog>, target: number): number {
-    if (target <= 0) return 0;
-
-    const completedDates = Object.values(logs)
-        .filter((log) => log.words >= target)
-        .map((log) => log.date)
-        .sort((a, b) => a.localeCompare(b));
-    let longest = 0;
-    let current = 0;
-    let previousDate: Date | null = null;
-
-    completedDates.forEach((dateKey) => {
-        const date = parseLocalDateKey(dateKey);
-        const isConsecutive = previousDate
-            ? getLocalDateKey(addLocalDays(previousDate, 1)) === dateKey
-            : false;
-
-        current = isConsecutive ? current + 1 : 1;
-        longest = Math.max(longest, current);
-        previousDate = date;
-    });
-
-    return longest;
 }
 
 function getHeatmapDays(logs: Record<string, DailyWritingLog>, target: number, now: Date): HeatmapDay[] {
@@ -420,8 +386,8 @@ function getHeatmapCellClass(level: number): string {
     return 'border-white/5 bg-white/[0.04]';
 }
 
-function formatDateLabel(dateKey: string): string {
-    return parseLocalDateKey(dateKey).toLocaleDateString('zh-CN', {
+function formatDateLabel(dateKey: string, locale: string): string {
+    return parseLocalDateKey(dateKey).toLocaleDateString(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

@@ -6,6 +6,7 @@ import { getLocalDateKey } from '../lib/date-utils';
 export interface DailyWritingLog {
     date: string;
     words: number;
+    targetWords?: number;
     updatedAt: number;
     goalMetAt?: number;
 }
@@ -36,8 +37,9 @@ export const useWritingStatsStore = create<WritingStatsState>()(
 
                 set((state) => {
                     const existingLog = state.logs[date];
+                    const targetWords = existingLog?.targetWords || state.dailyTargetWords;
                     const nextWords = (existingLog?.words || 0) + wordsToAdd;
-                    const reachedGoal = nextWords >= state.dailyTargetWords;
+                    const reachedGoal = nextWords >= targetWords;
 
                     return {
                         logs: {
@@ -45,6 +47,7 @@ export const useWritingStatsStore = create<WritingStatsState>()(
                             [date]: {
                                 date,
                                 words: nextWords,
+                                targetWords,
                                 updatedAt: Date.now(),
                                 goalMetAt: existingLog?.goalMetAt || (reachedGoal ? Date.now() : undefined),
                             },

@@ -7,6 +7,7 @@ import {
     FileText,
     Folder,
     NotebookPen,
+    Trophy,
     ChevronRight,
     ChevronDown,
     Plus,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { downloadFile } from '../lib/file-utils';
 import { exportToZip } from '../lib/export-utils';
+import { useI18n } from '../lib/i18n';
 import { useNavigate } from 'react-router-dom';
 import { ContextMenu, type ContextMenuAction } from './ui/ContextMenu';
 import type { FileNode } from '../store/useFileStore';
@@ -167,6 +169,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const { files, activeFileId, createFile, openFile, deleteFile, renameFile, moveFile } = useFileStore();
     const { showConfirm, showPrompt, showSelect } = useModalStore();
     const { themeMode, toggleThemeMode } = useAppearanceStore();
+    const { t } = useI18n();
     const navigate = useNavigate();
     const rootNodes = Object.values(files).filter(f => f.parentId === null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -186,9 +189,15 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const activeProjectId = activeNode ? getProjectRootId(files, activeNode.id) : null;
     const effectiveSearchScope = getEffectiveSearchScope(searchScope, activeFileId, activeFolderId, activeProjectId);
     const searchResults = useMemo(
-        () => getSearchResults(files, searchQuery, effectiveSearchScope, activeFileId, activeFolderId, activeProjectId),
-        [activeFileId, activeFolderId, activeProjectId, effectiveSearchScope, files, searchQuery]
+        () => getSearchResults(files, searchQuery, effectiveSearchScope, activeFileId, activeFolderId, activeProjectId, t('sidebar.matchedTitle')),
+        [activeFileId, activeFolderId, activeProjectId, effectiveSearchScope, files, searchQuery, t]
     );
+    const searchScopeLabels: Record<SearchScope, string> = {
+        all: t('sidebar.scopeAll'),
+        project: t('sidebar.scopeProject'),
+        folder: t('sidebar.scopeFolder'),
+        file: t('sidebar.scopeFile'),
+    };
 
     const handleOpenSearchResult = (fileId: string) => {
         openFile(fileId);
@@ -224,7 +233,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
         };
 
         return [
-            { id: 'root', label: 'Root (Top Level)', children: buildTree(null) } // Root is special case
+            { id: 'root', label: t('sidebar.root'), children: buildTree(null) } // Root is special case
         ];
     };
 
@@ -239,10 +248,10 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
         if (node.type === 'folder') {
             actions.push(
                 {
-                    label: 'New File',
+                    label: t('sidebar.newFile'),
                     icon: FilePlus,
                     onClick: () => {
-                        showPrompt('New File', 'Enter file name:', 'Untitled', (name) => {
+                        showPrompt(t('sidebar.newFile'), t('sidebar.fileNamePrompt'), t('common.untitled'), (name) => {
                             const id = createFile(node.id, name, 'file');
                             openFile(id);
                             navigate(`/editor/${id}`);
@@ -250,16 +259,16 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                     }
                 },
                 {
-                    label: 'New Folder',
+                    label: t('sidebar.newFolder'),
                     icon: FolderPlus,
                     onClick: () => {
-                        showPrompt('New Folder', 'Enter folder name:', 'New Folder', (name) => {
+                        showPrompt(t('sidebar.newFolder'), t('sidebar.folderNamePrompt'), t('sidebar.newFolder'), (name) => {
                             createFile(node.id, name, 'folder');
                         });
                     }
                 },
                 {
-                    label: 'Export (ZIP)',
+                    label: t('sidebar.exportZip'),
                     icon: Download,
                     onClick: () => {
                         exportToZip(node, files);
@@ -270,22 +279,22 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
 
         actions.push(
             {
-                label: 'Rename',
+                label: t('sidebar.rename'),
                 icon: Edit2,
                 onClick: () => {
-                    showPrompt('Rename', 'Enter new name:', node.name, (newName) => {
+                    showPrompt(t('sidebar.rename'), t('sidebar.fileNamePrompt'), node.name, (newName) => {
                         renameFile(node.id, newName);
                     });
                 }
             },
             {
-                label: 'Move to...',
+                label: t('sidebar.moveTo'),
                 icon: Move,
                 onClick: () => {
                     const treeData = getFolderTreeData(node.id);
                     const { showTreeSelect } = useModalStore.getState();
 
-                    showTreeSelect('Move to', `Select destination for "${node.name}":`, treeData, (targetId) => {
+                    showTreeSelect(t('sidebar.moveTo'), `${t('sidebar.moveTo')} "${node.name}":`, treeData, (targetId) => {
                         moveFile(node.id, targetId === 'root' ? null : targetId);
                     });
                 }
@@ -294,16 +303,16 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
 
         if (node.type === 'file') {
             actions.push({
-                label: 'Export...',
+                label: t('sidebar.export'),
                 icon: Download,
                 onClick: () => {
                     const { showSelect } = useModalStore.getState();
                     showSelect(
-                        'Export File',
-                        'Select export format:',
+                        t('sidebar.exportFile'),
+                        t('sidebar.exportFormat'),
                         [
-                            { id: 'markdown', label: 'Markdown (.md)' },
-                            { id: 'text', label: 'Plain Text (.txt)' }
+                            { id: 'markdown', label: t('sidebar.markdown') },
+                            { id: 'text', label: t('sidebar.plainText') }
                         ],
                         (formatId) => {
                             const content = node.content || '';
@@ -317,11 +326,11 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
         }
 
         actions.push({
-            label: 'Delete',
+            label: t('sidebar.delete'),
             icon: Trash2,
             danger: true,
             onClick: () => {
-                showConfirm('Delete', `Are you sure you want to delete "${node.name}"?`, () => {
+                showConfirm(t('sidebar.delete'), `${t('sidebar.deleteConfirmPrefix')} "${node.name}"${t('sidebar.deleteConfirmSuffix')}`, () => {
                     deleteFile(node.id);
                     navigate('/');
                 });
@@ -355,7 +364,14 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                     className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
                 >
                     <NotebookPen size={16} className="text-accent-secondary" />
-                    <span>随记 / Journal</span>
+                    <span>{t('nav.journal')}</span>
+                </button>
+                <button
+                    onClick={() => navigate('/trophies')}
+                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <Trophy size={16} className="text-amber-300" />
+                    <span>{t('nav.trophies')}</span>
                 </button>
             </div>
 
@@ -367,14 +383,14 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search files..."
+                        placeholder={t('sidebar.searchPlaceholder')}
                         className="w-full bg-white/5 border border-white/5 rounded-md py-1.5 pl-8 pr-3 text-sm text-gray-300 focus:outline-none focus:bg-white/10 transition-colors"
                     />
                     {searchQuery && (
                         <button
                             onClick={() => setSearchQuery('')}
                             className="absolute right-2 top-2 text-gray-500 hover:text-gray-300"
-                            title="Clear search"
+                            title={t('sidebar.clearSearch')}
                         >
                             <X size={14} />
                         </button>
@@ -399,7 +415,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                                     disabled && "cursor-not-allowed opacity-30 hover:bg-white/5 hover:text-gray-500"
                                 )}
                             >
-                                {SEARCH_SCOPE_LABELS[scope]}
+                                {searchScopeLabels[scope]}
                             </button>
                         );
                     })}
@@ -433,7 +449,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                             ))
                         ) : (
                             <div className="rounded-lg border border-dashed border-white/10 px-3 py-4 text-center text-xs text-gray-500">
-                                No matches in {SEARCH_SCOPE_LABELS[effectiveSearchScope].toLowerCase()} scope.
+                                {t('sidebar.noMatches')}
                             </div>
                         )}
                     </div>
@@ -443,22 +459,22 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
             {/* File Tree */}
             <div className="flex-1 overflow-y-auto px-2 py-2">
                 <div className="flex items-center justify-between px-2 mb-2">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Storage</span>
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">{t('nav.storage')}</span>
                     <button
                         onClick={() => {
                             // Create a simple selection modal for File vs Folder
-                            showSelect('Create New', 'What would you like to create?',
+                            showSelect(t('sidebar.createNew'), t('sidebar.createQuestion'),
                                 [
-                                    { id: 'folder', label: '📁 New Folder' },
-                                    { id: 'file', label: '📄 New File' }
+                                    { id: 'folder', label: `📁 ${t('sidebar.newFolder')}` },
+                                    { id: 'file', label: `📄 ${t('sidebar.newFile')}` }
                                 ],
                                 (type) => {
                                     if (type === 'folder') {
-                                        showPrompt('New Folder', 'Enter folder name:', 'New Folder', (name) => {
+                                        showPrompt(t('sidebar.newFolder'), t('sidebar.folderNamePrompt'), t('sidebar.newFolder'), (name) => {
                                             createFile(null, name, 'folder');
                                         });
                                     } else {
-                                        showPrompt('New File', 'Enter file name:', 'Untitled', (name) => {
+                                        showPrompt(t('sidebar.newFile'), t('sidebar.fileNamePrompt'), t('common.untitled'), (name) => {
                                             const id = createFile(null, name, 'file');
                                             openFile(id);
                                             navigate(`/editor/${id}`);
@@ -490,14 +506,14 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                 <button
                     onClick={toggleThemeMode}
                     className="mb-1 flex items-center justify-between text-gray-400 hover:text-white w-full px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
-                    title={themeMode === 'dark' ? 'Switch to light background' : 'Switch to dark background'}
+                    title={t('nav.theme')}
                 >
                     <span className="flex items-center gap-3">
                         {themeMode === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-                        <span className="text-sm">Theme</span>
+                        <span className="text-sm">{t('nav.theme')}</span>
                     </span>
                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
-                        {themeMode}
+                        {themeMode === 'dark' ? t('nav.dark') : t('nav.light')}
                     </span>
                 </button>
                 <button
@@ -505,7 +521,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                     className="flex items-center gap-3 text-gray-400 hover:text-white w-full px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
                 >
                     <Settings size={18} />
-                    <span className="text-sm">Settings</span>
+                    <span className="text-sm">{t('nav.settings')}</span>
                 </button>
             </div>
 
@@ -540,7 +556,8 @@ function getSearchResults(
     scope: SearchScope,
     activeFileId: string | null,
     activeFolderId: string | null,
-    activeProjectId: string | null
+    activeProjectId: string | null,
+    matchedTitleLabel: string
 ): SearchResult[] {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return [];
@@ -560,7 +577,7 @@ function getSearchResults(
                 fileId: file.id,
                 fileName: file.name,
                 path: getPathLabel(files, file.parentId),
-                snippet: getSearchSnippet(file.name, content, trimmedQuery),
+                snippet: getSearchSnippet(file.name, content, trimmedQuery, matchedTitleLabel),
                 matchCount,
             };
         })
@@ -631,13 +648,13 @@ function getMatchCount(text: string, query: string): number {
     return text.toLowerCase().split(query.toLowerCase()).length - 1;
 }
 
-function getSearchSnippet(fileName: string, content: string, query: string): string {
+function getSearchSnippet(fileName: string, content: string, query: string, matchedTitleLabel: string): string {
     const lowerContent = content.toLowerCase();
     const lowerQuery = query.toLowerCase();
     const matchIndex = lowerContent.indexOf(lowerQuery);
 
     if (matchIndex === -1) {
-        return `Matched title: ${fileName}`;
+        return `${matchedTitleLabel}: ${fileName}`;
     }
 
     const start = Math.max(0, matchIndex - 36);

@@ -3,7 +3,9 @@ import { useFileStore } from '../store/useFileStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useWritingStatsStore } from '../store/useWritingStatsStore';
+import { useLanguageStore } from '../store/useLanguageStore';
 import { useModalStore } from '../store/useModalStore';
+import { useI18n } from '../lib/i18n';
 import { downloadFile, readJsonFile } from '../lib/file-utils';
 import { Download, Upload, Trash2, FileJson, AlertTriangle } from 'lucide-react';
 
@@ -18,6 +20,7 @@ interface BackupData {
         dailyTargetWords: ReturnType<typeof useWritingStatsStore.getState>['dailyTargetWords'];
         logs: ReturnType<typeof useWritingStatsStore.getState>['logs'];
     };
+    language?: ReturnType<typeof useLanguageStore.getState>['language'];
     settings: {
         modelConfigs: ReturnType<typeof useSettingsStore.getState>['modelConfigs'];
         promptTemplates: ReturnType<typeof useSettingsStore.getState>['promptTemplates'];
@@ -37,7 +40,9 @@ export function DataSettings() {
     const settingsStore = useSettingsStore();
     const journalStore = useJournalStore();
     const writingStatsStore = useWritingStatsStore();
+    const languageStore = useLanguageStore();
     const { showConfirm } = useModalStore();
+    const { t } = useI18n();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleBackup = () => {
@@ -52,6 +57,7 @@ export function DataSettings() {
                 dailyTargetWords: writingStatsStore.dailyTargetWords,
                 logs: writingStatsStore.logs,
             },
+            language: languageStore.language,
             settings: {
                 modelConfigs: settingsStore.modelConfigs,
                 promptTemplates: settingsStore.promptTemplates,
@@ -76,8 +82,8 @@ export function DataSettings() {
             }
 
             showConfirm(
-                'Restore Backup',
-                'This will overwrite all current data. Are you sure you want to continue?',
+                t('data.restoreTitle'),
+                t('data.restoreConfirm'),
                 () => {
                     fileStore.importData({ files: data.files });
                     if (data.journal?.entries) {
@@ -85,6 +91,9 @@ export function DataSettings() {
                     }
                     if (data.writingStats) {
                         writingStatsStore.importStats(data.writingStats);
+                    }
+                    if (data.language) {
+                        languageStore.setLanguage(data.language);
                     }
                     settingsStore.importSettings(data.settings);
                     // Force reload to ensure everything is fresh? Or just let React handle updates.
@@ -105,28 +114,28 @@ export function DataSettings() {
             <div className="border border-white/10 rounded-lg p-6 bg-white/5">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <FileJson className="text-accent-primary" size={20} />
-                    Data Backup & Restore
+                    {t('data.title')}
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 border border-white/5 rounded-lg bg-white/[0.02]">
-                        <h4 className="font-medium text-gray-200 mb-2">Backup</h4>
+                        <h4 className="font-medium text-gray-200 mb-2">{t('data.backup')}</h4>
                         <p className="text-sm text-gray-500 mb-4">
-                            Save your files, journal entries, writing stats, settings, and chats to a local JSON file.
+                            {t('data.backupDescription')}
                         </p>
                         <button
                             onClick={handleBackup}
                             className="flex items-center gap-2 px-4 py-2 bg-accent-primary/20 text-accent-primary rounded-md hover:bg-accent-primary/30 transition-colors text-sm font-medium"
                         >
                             <Download size={16} />
-                            Download Backup
+                            {t('data.downloadBackup')}
                         </button>
                     </div>
 
                     <div className="p-4 border border-white/5 rounded-lg bg-white/[0.02]">
-                        <h4 className="font-medium text-gray-200 mb-2">Restore</h4>
+                        <h4 className="font-medium text-gray-200 mb-2">{t('data.restore')}</h4>
                         <p className="text-sm text-gray-500 mb-4">
-                            Restore from a previously saved JSON backup file.
+                            {t('data.restoreDescription')}
                         </p>
                         <input
                             type="file"
@@ -140,7 +149,7 @@ export function DataSettings() {
                             className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-md hover:bg-white/15 transition-colors text-sm font-medium"
                         >
                             <Upload size={16} />
-                            Upload Backup
+                            {t('data.uploadBackup')}
                         </button>
                     </div>
                 </div>
@@ -149,16 +158,16 @@ export function DataSettings() {
             <div className="border border-red-500/20 rounded-lg p-6 bg-red-500/5">
                 <h3 className="text-lg font-semibold text-red-400 mb-4 flex items-center gap-2">
                     <AlertTriangle size={20} />
-                    Danger Zone
+                    {t('data.dangerZone')}
                 </h3>
                 <p className="text-sm text-gray-400 mb-4">
-                    Permanently delete all data. This action cannot be undone.
+                    {t('data.dangerDescription')}
                 </p>
                 <button
                     onClick={() => {
                         showConfirm(
-                            'Clear All Data',
-                            'Are you ABSOLUTELY sure? This will delete ALL files and settings locally.',
+                            t('data.clearTitle'),
+                            t('data.clearConfirm'),
                             () => {
                                 localStorage.clear();
                                 window.location.reload();
@@ -168,7 +177,7 @@ export function DataSettings() {
                     className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-md hover:bg-red-500/20 transition-colors text-sm font-medium border border-red-500/20"
                 >
                     <Trash2 size={16} />
-                    Reset All Data
+                    {t('data.resetAllData')}
                 </button>
             </div>
         </div>

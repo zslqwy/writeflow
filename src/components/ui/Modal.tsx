@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useModalStore, type TreeNode } from '../../store/useModalStore';
 import { X, ChevronRight, ChevronDown, Folder, Calendar } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useI18n } from '../../lib/i18n';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -93,6 +94,7 @@ function ModalContent({
     modal: ReturnType<typeof useModalStore.getState>['modal'];
     inputRef: React.RefObject<HTMLInputElement | null>;
 }) {
+    const { locale, t } = useI18n();
     const [inputValue, setInputValue] = useState(modal.type === 'prompt' ? (modal.defaultValue ?? '') : '');
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(
@@ -151,7 +153,7 @@ function ModalContent({
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-accent-primary/50 transition-colors"
-                            placeholder="Enter value..."
+                            placeholder={t('modal.enterValue')}
                         />
                     )}
 
@@ -201,7 +203,7 @@ function ModalContent({
                             {selectedDate && (
                                 <p className="text-sm text-accent-primary mt-2">
                                     <Calendar size={14} className="inline mr-1" />
-                                    Selected: {selectedDate.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                    {t('modal.selected')} {selectedDate.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                                 </p>
                             )}
                         </div>
@@ -214,7 +216,7 @@ function ModalContent({
                             onClick={() => modal.onCancel?.()}
                             className="px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                         >
-                            Cancel
+                            {t('common.cancel')}
                         </button>
                         <button
                             disabled={(modal.type === 'tree-select' && !selectedId) || (modal.type === 'date-picker' && !selectedDate)}
@@ -231,7 +233,7 @@ function ModalContent({
                                     : "bg-accent-primary hover:bg-accent-primary/80"
                             )}
                         >
-                            Confirm
+                            {t('common.confirm')}
                         </button>
                     </div>
                 )}

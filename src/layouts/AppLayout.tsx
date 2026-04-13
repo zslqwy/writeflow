@@ -8,10 +8,12 @@ import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
 import { AIAssistant } from '../components/AIAssistant';
 import { SettingsModal } from '../components/ui/SettingsModal';
 import { AISettingsModal } from '../components/ui/AISettingsModal';
+import { useI18n } from '../lib/i18n';
 
 export function AppLayout() {
     const { isFocusMode } = useFocusStore();
     const { themeMode } = useAppearanceStore();
+    const { language, t } = useI18n();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -22,6 +24,10 @@ export function AppLayout() {
     useEffect(() => {
         document.documentElement.dataset.theme = themeMode;
     }, [themeMode]);
+
+    useEffect(() => {
+        document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+    }, [language]);
 
     return (
         <div className="flex h-screen w-full overflow-hidden text-gray-200 font-sans selection:bg-accent-primary/30 selection:text-white">
@@ -44,7 +50,7 @@ export function AppLayout() {
                     "text-gray-400 hover:text-white hover:bg-white/10",
                     isSidebarHidden ? "left-4" : "left-[15rem]"
                 )}
-                title={isSidebarHidden ? "Show Sidebar" : "Hide Sidebar"}
+                title={isSidebarHidden ? t('layout.showSidebar') : t('layout.hideSidebar')}
             >
                 {isSidebarHidden ? <PanelLeft size={18} /> : <PanelLeftClose size={18} />}
             </button>
@@ -59,7 +65,7 @@ export function AppLayout() {
                         ? "bg-accent-primary text-white"
                         : "bg-[#1a1a1e]/90 backdrop-blur-xl text-gray-400 hover:text-white hover:bg-white/10"
                 )}
-                title="AI Assistant"
+                title={t('layout.aiAssistant')}
             >
                 <Sparkles size={20} />
             </button>
