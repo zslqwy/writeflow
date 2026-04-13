@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useFileStore } from '../store/useFileStore';
 import { useModalStore } from '../store/useModalStore';
+import { useAppearanceStore } from '../store/useAppearanceStore';
 import { cn } from '../lib/utils';
 import {
     FileText,
     Folder,
+    NotebookPen,
     ChevronRight,
     ChevronDown,
     Plus,
@@ -17,7 +19,9 @@ import {
     Move,
     Download,
     Home,
-    X
+    X,
+    Sun,
+    Moon
 } from 'lucide-react';
 import { downloadFile } from '../lib/file-utils';
 import { exportToZip } from '../lib/export-utils';
@@ -162,6 +166,7 @@ const FileTreeItem = ({ nodeId, level = 0, onContextMenu, onDrop }: FileTreeItem
 export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const { files, activeFileId, createFile, openFile, deleteFile, renameFile, moveFile } = useFileStore();
     const { showConfirm, showPrompt, showSelect } = useModalStore();
+    const { themeMode, toggleThemeMode } = useAppearanceStore();
     const navigate = useNavigate();
     const rootNodes = Object.values(files).filter(f => f.parentId === null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -344,6 +349,16 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
 
             {/* ... Middle content ... */}
 
+            <div className="border-b border-white/5 px-3 py-2">
+                <button
+                    onClick={() => navigate('/journal')}
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <NotebookPen size={16} className="text-accent-secondary" />
+                    <span>随记 / Journal</span>
+                </button>
+            </div>
+
             {/* Search */}
             <div className="px-3 py-2 border-b border-white/5">
                 <div className="relative mb-2">
@@ -472,6 +487,19 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
 
             {/* User / Settings */}
             <div className="p-3 border-t border-white/5">
+                <button
+                    onClick={toggleThemeMode}
+                    className="mb-1 flex items-center justify-between text-gray-400 hover:text-white w-full px-2 py-2 rounded-md hover:bg-white/5 transition-colors"
+                    title={themeMode === 'dark' ? 'Switch to light background' : 'Switch to dark background'}
+                >
+                    <span className="flex items-center gap-3">
+                        {themeMode === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
+                        <span className="text-sm">Theme</span>
+                    </span>
+                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                        {themeMode}
+                    </span>
+                </button>
                 <button
                     onClick={onOpenSettings}
                     className="flex items-center gap-3 text-gray-400 hover:text-white w-full px-2 py-2 rounded-md hover:bg-white/5 transition-colors"

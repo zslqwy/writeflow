@@ -1,8 +1,9 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { useFocusStore } from '../store/useFocusStore';
+import { useAppearanceStore } from '../store/useAppearanceStore';
 import { cn } from '../lib/utils';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
 import { AIAssistant } from '../components/AIAssistant';
 import { SettingsModal } from '../components/ui/SettingsModal';
@@ -10,12 +11,17 @@ import { AISettingsModal } from '../components/ui/AISettingsModal';
 
 export function AppLayout() {
     const { isFocusMode } = useFocusStore();
+    const { themeMode } = useAppearanceStore();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
+
+    useEffect(() => {
+        document.documentElement.dataset.theme = themeMode;
+    }, [themeMode]);
 
     return (
         <div className="flex h-screen w-full overflow-hidden text-gray-200 font-sans selection:bg-accent-primary/30 selection:text-white">
