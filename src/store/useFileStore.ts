@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 
+import { createIndexedDBStorage } from '../lib/indexeddb-storage';
 import { countWords } from '../lib/text-stats';
 
 export type FileType = 'file' | 'folder';
@@ -406,7 +407,7 @@ export const useFileStore = create<FileStore>()(
         }),
         {
             name: 'zenflux-storage',
-            storage: createJSONStorage(() => localStorage),
+            storage: createJSONStorage(() => createIndexedDBStorage()),
             partialize: (state): PersistedFileStore => ({
                 files: state.files,
                 activeFileId: state.activeFileId,

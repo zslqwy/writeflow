@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
+
+import { createIndexedDBStorage } from '../lib/indexeddb-storage';
 
 export interface JournalEntry {
     id: string;
@@ -72,6 +74,7 @@ export const useJournalStore = create<JournalStore>()(
         }),
         {
             name: 'writeflow-journal',
+            storage: createJSONStorage(() => createIndexedDBStorage()),
         }
     )
 );

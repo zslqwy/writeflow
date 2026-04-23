@@ -6,6 +6,7 @@ import { useWritingStatsStore } from '../store/useWritingStatsStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useModalStore } from '../store/useModalStore';
 import { getLocalDateKey } from '../lib/date-utils';
+import { clearIndexedDBPersistence } from '../lib/indexeddb-storage';
 import { useI18n } from '../lib/i18n';
 import { downloadFile, readJsonFile } from '../lib/file-utils';
 import { Download, Upload, Trash2, FileJson, AlertTriangle } from 'lucide-react';
@@ -176,7 +177,9 @@ export function DataSettings() {
                             t('data.clearConfirm'),
                             () => {
                                 localStorage.clear();
-                                window.location.reload();
+                                void clearIndexedDBPersistence().finally(() => {
+                                    window.location.reload();
+                                });
                             }
                         );
                     }}

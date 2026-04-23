@@ -2,6 +2,8 @@ import { Outlet } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { useFocusStore } from '../store/useFocusStore';
 import { useAppearanceStore } from '../store/useAppearanceStore';
+import { useFileStore } from '../store/useFileStore';
+import { useJournalStore } from '../store/useJournalStore';
 import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
@@ -18,8 +20,26 @@ export function AppLayout() {
     const [aiOpen, setAiOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
+    const [contentStorageReady, setContentStorageReady] = useState(() => (
+        useFileStore.persist.hasHydrated() && useJournalStore.persist.hasHydrated()
+    ));
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
+
+    useEffect(() => {
+        const updateHydrationState = () => {
+            setContentStorageReady(useFileStore.persist.hasHydrated() && useJournalStore.persist.hasHydrated());
+        };
+        const unsubscribeFileStore = useFileStore.persist.onFinishHydration(updateHydrationState);
+        const unsubscribeJournalStore = useJournalStore.persist.onFinishHydration(updateHydrationState);
+
+        updateHydrationState();
+
+        return () => {
+            unsubscribeFileStore();
+            unsubscribeJournalStore();
+        };
+    }, []);
 
     useEffect(() => {
         document.documentElement.dataset.theme = themeMode;
@@ -71,9 +91,19 @@ export function AppLayout() {
             </button>
 
             <main className="flex-1 overflow-hidden relative flex flex-col">
-                <div className="flex-1 overflow-auto">
-                    <Outlet />
-                </div>
+                {contentStorageReady ? (
+                    <div className="flex-1 overflow-auto">
+                        <Outlet />
+                    </div>
+                ) : (
+                    <div className="flex flex-1 items-center justify-center">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-5 text-center glass">
+                            <Sparkles size={24} className="mx-auto mb-3 text-accent-primary" />
+                            <p className="text-sm font-medium text-gray-200">{t('layout.loadingLibrary')}</p>
+                            <p className="mt-1 text-xs text-gray-500">{t('layout.preparingStorage')}</p>
+                        </div>
+                    </div>
+                )}
             </main>
 
             {/* AI Assistant Panel */}

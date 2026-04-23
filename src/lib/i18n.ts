@@ -78,6 +78,8 @@ const zh = {
     'layout.showSidebar': '显示侧边栏',
     'layout.hideSidebar': '隐藏侧边栏',
     'layout.aiAssistant': 'AI 助手',
+    'layout.loadingLibrary': '正在加载写作库...',
+    'layout.preparingStorage': '正在准备本地 IndexedDB 存储。',
 
     'dashboard.kicker': 'WriteFlow 工作台',
     'dashboard.greeting': '晚上好，写作者。',
@@ -300,6 +302,8 @@ const en: Record<TranslationKey, string> = {
     'layout.showSidebar': 'Show Sidebar',
     'layout.hideSidebar': 'Hide Sidebar',
     'layout.aiAssistant': 'AI Assistant',
+    'layout.loadingLibrary': 'Loading writing library...',
+    'layout.preparingStorage': 'Preparing local IndexedDB storage.',
 
     'dashboard.kicker': 'WriteFlow Studio',
     'dashboard.greeting': 'Good evening, Writer.',
