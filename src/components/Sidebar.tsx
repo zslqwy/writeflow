@@ -6,6 +6,8 @@ import { cn } from '../lib/utils';
 import {
     FileText,
     Folder,
+    LibraryBig,
+    Lightbulb,
     NotebookPen,
     Trophy,
     ChevronRight,
@@ -372,6 +374,20 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                 >
                     <Trophy size={16} className="text-amber-300" />
                     <span>{t('nav.trophies')}</span>
+                </button>
+                <button
+                    onClick={() => navigate('/inspirations')}
+                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <Lightbulb size={16} className="text-accent-primary" />
+                    <span>{t('nav.inspirations')}</span>
+                </button>
+                <button
+                    onClick={() => navigate('/materials')}
+                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <LibraryBig size={16} className="text-amber-300" />
+                    <span>{t('nav.materials')}</span>
                 </button>
             </div>
 

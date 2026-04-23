@@ -36,3 +36,19 @@ export const readJsonFile = (file: File): Promise<unknown> => {
         reader.readAsText(file);
     });
 };
+
+export const readTextFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const result = e.target?.result;
+            if (typeof result === 'string') {
+                resolve(result);
+            } else {
+                reject(new Error('Invalid file content'));
+            }
+        };
+        reader.onerror = (error) => reject(error);
+        reader.readAsText(file);
+    });
+};

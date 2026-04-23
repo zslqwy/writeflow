@@ -4,10 +4,12 @@ import { useFocusStore } from '../store/useFocusStore';
 import { useAppearanceStore } from '../store/useAppearanceStore';
 import { useFileStore } from '../store/useFileStore';
 import { useJournalStore } from '../store/useJournalStore';
+import { useCollectionStore } from '../store/useCollectionStore';
 import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
 import { AIAssistant } from '../components/AIAssistant';
+import { QuickCapture } from '../components/QuickCapture';
 import { SettingsModal } from '../components/ui/SettingsModal';
 import { AISettingsModal } from '../components/ui/AISettingsModal';
 import { useI18n } from '../lib/i18n';
@@ -21,23 +23,29 @@ export function AppLayout() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
     const [contentStorageReady, setContentStorageReady] = useState(() => (
-        useFileStore.persist.hasHydrated() && useJournalStore.persist.hasHydrated()
+        useFileStore.persist.hasHydrated() && useJournalStore.persist.hasHydrated() && useCollectionStore.persist.hasHydrated()
     ));
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
 
     useEffect(() => {
         const updateHydrationState = () => {
-            setContentStorageReady(useFileStore.persist.hasHydrated() && useJournalStore.persist.hasHydrated());
+            setContentStorageReady(
+                useFileStore.persist.hasHydrated()
+                && useJournalStore.persist.hasHydrated()
+                && useCollectionStore.persist.hasHydrated()
+            );
         };
         const unsubscribeFileStore = useFileStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeJournalStore = useJournalStore.persist.onFinishHydration(updateHydrationState);
+        const unsubscribeCollectionStore = useCollectionStore.persist.onFinishHydration(updateHydrationState);
 
         updateHydrationState();
 
         return () => {
             unsubscribeFileStore();
             unsubscribeJournalStore();
+            unsubscribeCollectionStore();
         };
     }, []);
 
@@ -89,6 +97,8 @@ export function AppLayout() {
             >
                 <Sparkles size={20} />
             </button>
+
+            {contentStorageReady && <QuickCapture />}
 
             <main className="flex-1 overflow-hidden relative flex flex-col">
                 {contentStorageReady ? (

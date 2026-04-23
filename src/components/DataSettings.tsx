@@ -4,6 +4,7 @@ import { useSettingsStore } from '../store/useSettingsStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useWritingStatsStore } from '../store/useWritingStatsStore';
 import { useLanguageStore } from '../store/useLanguageStore';
+import { useCollectionStore } from '../store/useCollectionStore';
 import { useModalStore } from '../store/useModalStore';
 import { getLocalDateKey } from '../lib/date-utils';
 import { clearIndexedDBPersistence } from '../lib/indexeddb-storage';
@@ -21,6 +22,9 @@ interface BackupData {
     writingStats?: {
         dailyTargetWords: ReturnType<typeof useWritingStatsStore.getState>['dailyTargetWords'];
         logs: ReturnType<typeof useWritingStatsStore.getState>['logs'];
+    };
+    collections?: {
+        items: ReturnType<typeof useCollectionStore.getState>['items'];
     };
     language?: ReturnType<typeof useLanguageStore.getState>['language'];
     settings: {
@@ -48,6 +52,7 @@ export function DataSettings() {
     const journalStore = useJournalStore();
     const writingStatsStore = useWritingStatsStore();
     const languageStore = useLanguageStore();
+    const collectionStore = useCollectionStore();
     const { showConfirm } = useModalStore();
     const { t } = useI18n();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +68,9 @@ export function DataSettings() {
             writingStats: {
                 dailyTargetWords: writingStatsStore.dailyTargetWords,
                 logs: writingStatsStore.logs,
+            },
+            collections: {
+                items: collectionStore.items,
             },
             language: languageStore.language,
             settings: {
@@ -98,6 +106,9 @@ export function DataSettings() {
                     }
                     if (data.writingStats) {
                         writingStatsStore.importStats(data.writingStats);
+                    }
+                    if (data.collections?.items) {
+                        collectionStore.importItems(data.collections.items);
                     }
                     if (data.language === 'zh' || data.language === 'en') {
                         languageStore.setLanguage(data.language);
