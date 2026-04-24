@@ -5,6 +5,7 @@ import { useJournalStore } from '../store/useJournalStore';
 import { useWritingStatsStore } from '../store/useWritingStatsStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useCollectionStore } from '../store/useCollectionStore';
+import { useCreativeSettingStore } from '../store/useCreativeSettingStore';
 import { useModalStore } from '../store/useModalStore';
 import { getLocalDateKey } from '../lib/date-utils';
 import { clearIndexedDBPersistence } from '../lib/indexeddb-storage';
@@ -25,6 +26,9 @@ interface BackupData {
     };
     collections?: {
         items: ReturnType<typeof useCollectionStore.getState>['items'];
+    };
+    creativeSettings?: {
+        profiles: ReturnType<typeof useCreativeSettingStore.getState>['profiles'];
     };
     language?: ReturnType<typeof useLanguageStore.getState>['language'];
     settings: {
@@ -53,6 +57,7 @@ export function DataSettings() {
     const writingStatsStore = useWritingStatsStore();
     const languageStore = useLanguageStore();
     const collectionStore = useCollectionStore();
+    const creativeSettingStore = useCreativeSettingStore();
     const { showConfirm } = useModalStore();
     const { t } = useI18n();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,6 +76,9 @@ export function DataSettings() {
             },
             collections: {
                 items: collectionStore.items,
+            },
+            creativeSettings: {
+                profiles: creativeSettingStore.profiles,
             },
             language: languageStore.language,
             settings: {
@@ -109,6 +117,9 @@ export function DataSettings() {
                     }
                     if (data.collections?.items) {
                         collectionStore.importItems(data.collections.items);
+                    }
+                    if (data.creativeSettings?.profiles) {
+                        creativeSettingStore.importProfiles(data.creativeSettings.profiles);
                     }
                     if (data.language === 'zh' || data.language === 'en') {
                         languageStore.setLanguage(data.language);

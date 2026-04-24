@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Journal } from './pages/Journal';
 import { TrophyWall } from './pages/TrophyWall';
 import { CollectionBoard } from './pages/CollectionBoard';
+import { CreativeSettings } from './pages/CreativeSettings';
 import { Modal } from './components/ui/Modal';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
                     <Route path="trophies" element={<TrophyWall />} />
                     <Route path="inspirations" element={<CollectionBoard itemType="inspiration" />} />
                     <Route path="materials" element={<CollectionBoard itemType="material" />} />
+                    <Route path="creative-settings" element={<CreativeSettings />} />
                 </Route>
             </Routes>
             <Modal />

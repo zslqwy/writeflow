@@ -8,6 +8,7 @@ import {
     Folder,
     LibraryBig,
     Lightbulb,
+    Map,
     NotebookPen,
     Trophy,
     ChevronRight,
@@ -362,18 +363,18 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
 
             <div className="border-b border-white/5 px-3 py-2">
                 <button
-                    onClick={() => navigate('/journal')}
-                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
-                >
-                    <NotebookPen size={16} className="text-accent-secondary" />
-                    <span>{t('nav.journal')}</span>
-                </button>
-                <button
                     onClick={() => navigate('/trophies')}
-                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                    className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
                 >
                     <Trophy size={16} className="text-amber-300" />
                     <span>{t('nav.trophies')}</span>
+                </button>
+                <button
+                    onClick={() => navigate('/journal')}
+                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <NotebookPen size={16} className="text-accent-secondary" />
+                    <span>{t('nav.journal')}</span>
                 </button>
                 <button
                     onClick={() => navigate('/inspirations')}
@@ -388,6 +389,13 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                 >
                     <LibraryBig size={16} className="text-amber-300" />
                     <span>{t('nav.materials')}</span>
+                </button>
+                <button
+                    onClick={() => navigate('/creative-settings')}
+                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <Map size={16} className="text-emerald-300" />
+                    <span>{t('nav.creative')}</span>
                 </button>
             </div>
 

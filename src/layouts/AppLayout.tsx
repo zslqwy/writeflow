@@ -5,6 +5,7 @@ import { useAppearanceStore } from '../store/useAppearanceStore';
 import { useFileStore } from '../store/useFileStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useCollectionStore } from '../store/useCollectionStore';
+import { useCreativeSettingStore } from '../store/useCreativeSettingStore';
 import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
@@ -23,7 +24,10 @@ export function AppLayout() {
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
     const [contentStorageReady, setContentStorageReady] = useState(() => (
-        useFileStore.persist.hasHydrated() && useJournalStore.persist.hasHydrated() && useCollectionStore.persist.hasHydrated()
+        useFileStore.persist.hasHydrated()
+        && useJournalStore.persist.hasHydrated()
+        && useCollectionStore.persist.hasHydrated()
+        && useCreativeSettingStore.persist.hasHydrated()
     ));
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
@@ -34,11 +38,13 @@ export function AppLayout() {
                 useFileStore.persist.hasHydrated()
                 && useJournalStore.persist.hasHydrated()
                 && useCollectionStore.persist.hasHydrated()
+                && useCreativeSettingStore.persist.hasHydrated()
             );
         };
         const unsubscribeFileStore = useFileStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeJournalStore = useJournalStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeCollectionStore = useCollectionStore.persist.onFinishHydration(updateHydrationState);
+        const unsubscribeCreativeSettingStore = useCreativeSettingStore.persist.onFinishHydration(updateHydrationState);
 
         updateHydrationState();
 
@@ -46,6 +52,7 @@ export function AppLayout() {
             unsubscribeFileStore();
             unsubscribeJournalStore();
             unsubscribeCollectionStore();
+            unsubscribeCreativeSettingStore();
         };
     }, []);
 
