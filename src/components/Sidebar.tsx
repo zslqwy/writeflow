@@ -9,6 +9,7 @@ import {
     LibraryBig,
     Lightbulb,
     Map,
+    MessageCircle,
     NotebookPen,
     Trophy,
     ChevronRight,
@@ -396,6 +397,13 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: () => void }) {
                 >
                     <Map size={16} className="text-emerald-300" />
                     <span>{t('nav.creative')}</span>
+                </button>
+                <button
+                    onClick={() => navigate('/roleplay')}
+                    className="mt-1 flex w-full items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                    <MessageCircle size={16} className="text-cyan-300" />
+                    <span>{t('nav.roleplay')}</span>
                 </button>
             </div>
 

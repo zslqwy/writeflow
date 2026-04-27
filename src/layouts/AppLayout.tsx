@@ -6,6 +6,7 @@ import { useFileStore } from '../store/useFileStore';
 import { useJournalStore } from '../store/useJournalStore';
 import { useCollectionStore } from '../store/useCollectionStore';
 import { useCreativeSettingStore } from '../store/useCreativeSettingStore';
+import { useRoleplayStore } from '../store/useRoleplayStore';
 import { cn } from '../lib/utils';
 import { useEffect, useState } from 'react';
 import { PanelLeftClose, PanelLeft, Sparkles } from 'lucide-react';
@@ -28,6 +29,7 @@ export function AppLayout() {
         && useJournalStore.persist.hasHydrated()
         && useCollectionStore.persist.hasHydrated()
         && useCreativeSettingStore.persist.hasHydrated()
+        && useRoleplayStore.persist.hasHydrated()
     ));
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
@@ -39,12 +41,14 @@ export function AppLayout() {
                 && useJournalStore.persist.hasHydrated()
                 && useCollectionStore.persist.hasHydrated()
                 && useCreativeSettingStore.persist.hasHydrated()
+                && useRoleplayStore.persist.hasHydrated()
             );
         };
         const unsubscribeFileStore = useFileStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeJournalStore = useJournalStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeCollectionStore = useCollectionStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeCreativeSettingStore = useCreativeSettingStore.persist.onFinishHydration(updateHydrationState);
+        const unsubscribeRoleplayStore = useRoleplayStore.persist.onFinishHydration(updateHydrationState);
 
         updateHydrationState();
 
@@ -53,6 +57,7 @@ export function AppLayout() {
             unsubscribeJournalStore();
             unsubscribeCollectionStore();
             unsubscribeCreativeSettingStore();
+            unsubscribeRoleplayStore();
         };
     }, []);
 

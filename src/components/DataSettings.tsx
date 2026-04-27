@@ -6,6 +6,7 @@ import { useWritingStatsStore } from '../store/useWritingStatsStore';
 import { useLanguageStore } from '../store/useLanguageStore';
 import { useCollectionStore } from '../store/useCollectionStore';
 import { useCreativeSettingStore } from '../store/useCreativeSettingStore';
+import { useRoleplayStore } from '../store/useRoleplayStore';
 import { useModalStore } from '../store/useModalStore';
 import { getLocalDateKey } from '../lib/date-utils';
 import { clearIndexedDBPersistence } from '../lib/indexeddb-storage';
@@ -29,6 +30,10 @@ interface BackupData {
     };
     creativeSettings?: {
         profiles: ReturnType<typeof useCreativeSettingStore.getState>['profiles'];
+    };
+    roleplay?: {
+        sessions: ReturnType<typeof useRoleplayStore.getState>['sessions'];
+        activeSessionId: ReturnType<typeof useRoleplayStore.getState>['activeSessionId'];
     };
     language?: ReturnType<typeof useLanguageStore.getState>['language'];
     settings: {
@@ -58,6 +63,7 @@ export function DataSettings() {
     const languageStore = useLanguageStore();
     const collectionStore = useCollectionStore();
     const creativeSettingStore = useCreativeSettingStore();
+    const roleplayStore = useRoleplayStore();
     const { showConfirm } = useModalStore();
     const { t } = useI18n();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +85,10 @@ export function DataSettings() {
             },
             creativeSettings: {
                 profiles: creativeSettingStore.profiles,
+            },
+            roleplay: {
+                sessions: roleplayStore.sessions,
+                activeSessionId: roleplayStore.activeSessionId,
             },
             language: languageStore.language,
             settings: {
@@ -120,6 +130,9 @@ export function DataSettings() {
                     }
                     if (data.creativeSettings?.profiles) {
                         creativeSettingStore.importProfiles(data.creativeSettings.profiles);
+                    }
+                    if (data.roleplay?.sessions) {
+                        roleplayStore.importSessions(data.roleplay.sessions, data.roleplay.activeSessionId);
                     }
                     if (data.language === 'zh' || data.language === 'en') {
                         languageStore.setLanguage(data.language);
