@@ -3,6 +3,7 @@ import type { StateStorage } from 'zustand/middleware';
 const DB_NAME = 'writeflow-persistence';
 const DB_VERSION = 1;
 const STORE_NAME = 'zustand-stores';
+const OPEN_TIMEOUT_MS = 5000;
 
 let databasePromise: Promise<IDBDatabase> | null = null;
 
@@ -24,12 +25,22 @@ export function createIndexedDBStorage(): StateStorage<Promise<void>> {
                 return;
             }
 
-            await setIndexedDBValue(name, value);
+            try {
+                await setIndexedDBValue(name, value);
+            } catch (error) {
+                console.error(`Failed to write "${name}" to IndexedDB.`, error);
+            }
         },
 
         removeItem: async (name) => {
-            if (canUseIndexedDB()) {
+            if (!canUseIndexedDB()) {
+                return;
+            }
+
+            try {
                 await removeIndexedDBValue(name);
+            } catch (error) {
+                console.error(`Failed to remove "${name}" from IndexedDB.`, error);
             }
         },
     };
@@ -91,7 +102,21 @@ async function runStoreTransaction<T>(
 function openDatabase(): Promise<IDBDatabase> {
     if (!databasePromise) {
         databasePromise = new Promise((resolve, reject) => {
+            let settled = false;
             const request = indexedDB.open(DB_NAME, DB_VERSION);
+            const timeoutId = window.setTimeout(() => {
+                if (settled) return;
+                settled = true;
+                databasePromise = null;
+                reject(new Error(`Opening IndexedDB timed out after ${OPEN_TIMEOUT_MS}ms.`));
+            }, OPEN_TIMEOUT_MS);
+
+            const finish = (callback: () => void) => {
+                if (settled) return;
+                settled = true;
+                window.clearTimeout(timeoutId);
+                callback();
+            };
 
             request.onupgradeneeded = () => {
                 const database = request.result;
@@ -100,8 +125,14 @@ function openDatabase(): Promise<IDBDatabase> {
                 }
             };
 
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
+            request.onsuccess = () => finish(() => resolve(request.result));
+            request.onerror = () => finish(() => {
+                databasePromise = null;
+                reject(request.error);
+            });
+            request.onblocked = () => {
+                console.warn('IndexedDB open is blocked by another WriteFlow window.');
+            };
         });
     }
 

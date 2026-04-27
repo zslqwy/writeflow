@@ -16,6 +16,14 @@ import { SettingsModal } from '../components/ui/SettingsModal';
 import { AISettingsModal } from '../components/ui/AISettingsModal';
 import { useI18n } from '../lib/i18n';
 
+const isContentStorageHydrated = () => (
+    useFileStore.persist.hasHydrated()
+    && useJournalStore.persist.hasHydrated()
+    && useCollectionStore.persist.hasHydrated()
+    && useCreativeSettingStore.persist.hasHydrated()
+    && useRoleplayStore.persist.hasHydrated()
+);
+
 export function AppLayout() {
     const { isFocusMode } = useFocusStore();
     const { themeMode } = useAppearanceStore();
@@ -24,35 +32,25 @@ export function AppLayout() {
     const [aiOpen, setAiOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
-    const [contentStorageReady, setContentStorageReady] = useState(() => (
-        useFileStore.persist.hasHydrated()
-        && useJournalStore.persist.hasHydrated()
-        && useCollectionStore.persist.hasHydrated()
-        && useCreativeSettingStore.persist.hasHydrated()
-        && useRoleplayStore.persist.hasHydrated()
-    ));
+    const [contentStorageReady, setContentStorageReady] = useState(isContentStorageHydrated);
 
     const isSidebarHidden = isFocusMode || sidebarCollapsed;
 
     useEffect(() => {
         const updateHydrationState = () => {
-            setContentStorageReady(
-                useFileStore.persist.hasHydrated()
-                && useJournalStore.persist.hasHydrated()
-                && useCollectionStore.persist.hasHydrated()
-                && useCreativeSettingStore.persist.hasHydrated()
-                && useRoleplayStore.persist.hasHydrated()
-            );
+            setContentStorageReady(isContentStorageHydrated());
         };
         const unsubscribeFileStore = useFileStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeJournalStore = useJournalStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeCollectionStore = useCollectionStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeCreativeSettingStore = useCreativeSettingStore.persist.onFinishHydration(updateHydrationState);
         const unsubscribeRoleplayStore = useRoleplayStore.persist.onFinishHydration(updateHydrationState);
+        const hydrationCheckInterval = window.setInterval(updateHydrationState, 250);
 
         updateHydrationState();
 
         return () => {
+            window.clearInterval(hydrationCheckInterval);
             unsubscribeFileStore();
             unsubscribeJournalStore();
             unsubscribeCollectionStore();

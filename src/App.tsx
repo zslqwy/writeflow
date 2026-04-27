@@ -1,5 +1,5 @@
 import { Editor } from './pages/Editor';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Journal } from './pages/Journal';
@@ -11,7 +11,7 @@ import { Modal } from './components/ui/Modal';
 
 function App() {
     return (
-        <BrowserRouter>
+        <HashRouter>
             <Routes>
                 <Route path="/" element={<AppLayout />}>
                     <Route index element={<Dashboard />} />
@@ -25,7 +25,7 @@ function App() {
                 </Route>
             </Routes>
             <Modal />
-        </BrowserRouter>
+        </HashRouter>
     );
 }
 
