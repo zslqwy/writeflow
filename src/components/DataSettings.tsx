@@ -7,6 +7,7 @@ import { useLanguageStore } from '../store/useLanguageStore';
 import { useCollectionStore } from '../store/useCollectionStore';
 import { useCreativeSettingStore } from '../store/useCreativeSettingStore';
 import { useRoleplayStore } from '../store/useRoleplayStore';
+import { useAppearanceStore } from '../store/useAppearanceStore';
 import { useModalStore } from '../store/useModalStore';
 import { getLocalDateKey } from '../lib/date-utils';
 import { clearIndexedDBPersistence } from '../lib/indexeddb-storage';
@@ -36,6 +37,9 @@ interface BackupData {
         activeSessionId: ReturnType<typeof useRoleplayStore.getState>['activeSessionId'];
     };
     language?: ReturnType<typeof useLanguageStore.getState>['language'];
+    appearance?: {
+        themeMode: ReturnType<typeof useAppearanceStore.getState>['themeMode'];
+    };
     settings: {
         modelConfigs: ReturnType<typeof useSettingsStore.getState>['modelConfigs'];
         promptTemplates: ReturnType<typeof useSettingsStore.getState>['promptTemplates'];
@@ -64,6 +68,7 @@ export function DataSettings() {
     const collectionStore = useCollectionStore();
     const creativeSettingStore = useCreativeSettingStore();
     const roleplayStore = useRoleplayStore();
+    const appearanceStore = useAppearanceStore();
     const { showConfirm } = useModalStore();
     const { t } = useI18n();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +96,9 @@ export function DataSettings() {
                 activeSessionId: roleplayStore.activeSessionId,
             },
             language: languageStore.language,
+            appearance: {
+                themeMode: appearanceStore.themeMode,
+            },
             settings: {
                 modelConfigs: settingsStore.modelConfigs,
                 promptTemplates: settingsStore.promptTemplates,
@@ -136,6 +144,9 @@ export function DataSettings() {
                     }
                     if (data.language === 'zh' || data.language === 'en') {
                         languageStore.setLanguage(data.language);
+                    }
+                    if (data.appearance?.themeMode === 'dark' || data.appearance?.themeMode === 'light') {
+                        appearanceStore.setThemeMode(data.appearance.themeMode);
                     }
                     settingsStore.importSettings(data.settings);
                     // Force reload to ensure everything is fresh? Or just let React handle updates.

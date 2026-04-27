@@ -21,6 +21,37 @@ interface WritingStatsState {
 
 const DEFAULT_DAILY_TARGET = 500;
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const isDailyWritingLog = (value: unknown): value is DailyWritingLog => {
+    return isRecord(value)
+        && typeof value.date === 'string'
+        && typeof value.words === 'number'
+        && Number.isFinite(value.words)
+        && typeof value.updatedAt === 'number'
+        && Number.isFinite(value.updatedAt)
+        && (value.targetWords === undefined || typeof value.targetWords === 'number')
+        && (value.goalMetAt === undefined || typeof value.goalMetAt === 'number');
+};
+
+const normalizeLogs = (logs: Record<string, DailyWritingLog>): Record<string, DailyWritingLog> => {
+    return Object.fromEntries(
+        Object.entries(logs)
+            .filter((entry): entry is [string, DailyWritingLog] => isDailyWritingLog(entry[1]))
+            .map(([date, log]) => [
+                date,
+                {
+                    ...log,
+                    date,
+                    words: Math.max(0, Math.round(log.words)),
+                    targetWords: log.targetWords ? Math.max(1, Math.round(log.targetWords)) : undefined,
+                },
+            ])
+    );
+};
+
 export const useWritingStatsStore = create<WritingStatsState>()(
     persist(
         (set) => ({
@@ -57,8 +88,10 @@ export const useWritingStatsStore = create<WritingStatsState>()(
             },
 
             importStats: (data) => set((state) => ({
-                dailyTargetWords: data.dailyTargetWords || state.dailyTargetWords,
-                logs: data.logs || state.logs,
+                dailyTargetWords: typeof data.dailyTargetWords === 'number' && Number.isFinite(data.dailyTargetWords)
+                    ? Math.max(1, Math.round(data.dailyTargetWords))
+                    : state.dailyTargetWords,
+                logs: data.logs ? normalizeLogs(data.logs) : state.logs,
             })),
         }),
         {

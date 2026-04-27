@@ -21,6 +21,35 @@ interface JournalStore {
     importEntries: (entries: Record<string, JournalEntry>) => void;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+};
+
+const isJournalEntry = (value: unknown): value is JournalEntry => {
+    return isRecord(value)
+        && typeof value.id === 'string'
+        && typeof value.date === 'string'
+        && typeof value.title === 'string'
+        && typeof value.content === 'string'
+        && typeof value.createdAt === 'number'
+        && typeof value.updatedAt === 'number';
+};
+
+const normalizeEntries = (entries: Record<string, JournalEntry>): Record<string, JournalEntry> => {
+    return Object.fromEntries(
+        Object.entries(entries)
+            .filter((entry): entry is [string, JournalEntry] => isJournalEntry(entry[1]))
+            .map(([id, entry]) => [
+                id,
+                {
+                    ...entry,
+                    id,
+                    title: entry.title.trim() || 'Untitled Entry',
+                },
+            ])
+    );
+};
+
 export const useJournalStore = create<JournalStore>()(
     persist(
         (set) => ({
@@ -70,7 +99,7 @@ export const useJournalStore = create<JournalStore>()(
                 return { entries };
             }),
 
-            importEntries: (entries) => set({ entries }),
+            importEntries: (entries) => set({ entries: normalizeEntries(entries) }),
         }),
         {
             name: 'writeflow-journal',
